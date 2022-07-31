@@ -1,21 +1,18 @@
-import 'package:flutter/foundation.dart';
-import 'package:flutter/gestures.dart';
-import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
 import '../component.dart';
 import '../theme/theme.dart';
+import 'list_table_render.dart';
 
 const _kHeaderHeight = 40.0;
-const _kMinColumnWidth = 40.0;
-const _kHandlerWidth = 8.0;
-//const _kDefaultItemExtent = 40.0;
+const _kMinColumnWidth = 48.0;
+const _kHandlerWidth = 12.0;
 
 /// The builder for the table header.
 typedef TableHeaderBuilder = Widget Function(
   BuildContext context,
   int col,
-  BoxConstraints colConstraints,
 );
 
 /// The builder for the table row.
@@ -23,16 +20,20 @@ typedef TableRowBuilder = Widget Function(
   BuildContext context,
   int row,
   int col,
-  BoxConstraints colConstraints,
 );
 
 ///
 typedef RowPressedCallback = void Function(int index, RelativeRect position);
 
+/// Called when a column is dragged.
+/// May be used to save the columns positions.
+typedef ColumnIndexMappingCallback = void Function(List<int> indexMapping);
+
 /// A table with columns that can be resized.
 class ListTable extends StatefulWidget {
   /// Creates a [ListTable].
   const ListTable({
+    super.key,
     this.tableBorder,
     required this.colCount,
     required this.itemCount,
@@ -44,10 +45,16 @@ class ListTable extends StatefulWidget {
     this.itemExtent = _kHeaderHeight,
     this.onPressed,
     this.onSecondaryPress,
-    Key? key,
+    this.allowColumnDragging = false,
+    this.columnIndexMapping,
+    this.onColumnIndexMappingChanged,
   })  : assert(colCount > 0),
         assert(itemExtent >= 0.0),
-        super(key: key);
+        assert(
+          !allowColumnDragging ||
+              columnIndexMapping == null ||
+              columnIndexMapping.length == colCount,
+        );
 
   final BorderSide? headerColumnBorder;
 
@@ -72,6 +79,13 @@ class ListTable extends StatefulWidget {
 
   final RowPressedCallback? onSecondaryPress;
 
+  final ColumnIndexMappingCallback? onColumnIndexMappingChanged;
+
+  /// The mapping for column positions. Must be the same size as `colCount`.
+  final List<int>? columnIndexMapping;
+
+  final bool allowColumnDragging;
+
   /// If the last column should collapse if it does not fit the minimum width anymore.
   // TODO(as): final bool collapseOnDrag;
 
@@ -79,101 +93,235 @@ class ListTable extends StatefulWidget {
   _ListTableState createState() => _ListTableState();
 }
 
-class _ListTableState extends State<ListTable> implements _TableDragUpdate {
-  var columnWidths = {};
-  bool hasHiddenColumns = false;
+class _ListTableState extends State<ListTable> {
   bool shouldReactToPrimaryPress = false;
   bool shouldReactToSecondaryPress = false;
 
   int hoveredIndex = -1;
   int pressedIndex = -1;
   int waitingIndex = -1;
+  int draggingColumnIndex = -1;
+  int draggingColumnTargetIndex = -1;
 
-  Widget createHeader() {
+  bool get isDraggingColumn =>
+      widget.allowColumnDragging && draggingColumnIndex >= 0;
+
+  List<double> colSizes = List.empty(growable: true);
+  Map<int, double>? colFraction;
+
+  List<int>? colIndexes;
+
+  bool dragging = false;
+  int? colDragging;
+  double? previousWidth;
+  double? totalWidth;
+  double? totalHeight;
+  List<double>? previousColSizes;
+  Map<int, double>? previousColFraction;
+
+  int get colCount => colSizes.length;
+
+  ScrollController? currentController;
+  ScrollController get controller =>
+      widget.controller ?? (currentController ??= ScrollController());
+
+  Widget createHeaderFeedback(int col, int lastNonZero) {
+    final int mappedIndex = colIndexes?[col] ?? col;
+
     final TableBorder? tableBorder = widget.tableBorder;
-    final bool hasBorder =
+    final bool hasBorder = tableBorder != null &&
+        (tableBorder.left != BorderSide.none ||
+            tableBorder.right != BorderSide.none ||
+            tableBorder.top != BorderSide.none ||
+            tableBorder.bottom != BorderSide.none);
+    final bool hasHeaderBorder =
         tableBorder != null && tableBorder.top != BorderSide.none;
 
-    final int lastNonZero = colSizes.lastIndexWhere((elem) => elem > 0.0);
+    final BoxDecoration decoration = BoxDecoration(
+      color: Theme.of(context).colorScheme.background[0].withOpacity(0.85),
+      border: hasBorder
+          ? Border(
+              left: tableBorder.left,
+              right: tableBorder.right,
+              top: tableBorder.top,
+              bottom: tableBorder.bottom,
+            )
+          : null,
+    );
 
     return Container(
-      decoration: hasBorder
-          ? BoxDecoration(
-              border: Border(
-                bottom: tableBorder.top,
-              ),
-            ) // TODO(as): ???
-          : null,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.max,
-        children: List<Widget>.generate(colCount, (col) {
-          assert(col < colSizes.length);
-
-          if (colSizes[col] == 0.0) {
-            return Container();
-          }
-
-          Widget result;
-
-          if (colCount > 1 && col < colCount - 1) {
-            result = Row(
-              children: [
-                Expanded(
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      return widget.tableHeaderBuilder(
-                        context,
-                        col,
-                        constraints,
-                      );
-                    },
-                  ),
-                ),
-                _TableColHandler(
-                  tableDragUpdate: this,
-                  col: col,
-                  hasIndicator: hasHiddenColumns && lastNonZero == col,
-                  border:
-                      widget.headerColumnBorder ?? tableBorder?.verticalInside,
-                ),
-              ],
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              mainAxisSize: MainAxisSize.max,
-            );
-          } else {
-            result = widget.tableHeaderBuilder(
-              context,
-              col,
-              BoxConstraints.tightFor(
+      width: colSizes[col],
+      height: totalHeight!,
+      decoration: decoration,
+      child: UnconstrainedBox(
+        clipBehavior: Clip.hardEdge,
+        alignment: Alignment.topLeft,
+        constrainedAxis: Axis.horizontal,
+        child: Column(
+          children: [
+            Container(
+              constraints: BoxConstraints.tightFor(
                 width: colSizes[col],
                 height: _kHeaderHeight,
               ),
-            );
-          }
-
-          return ConstrainedBox(
-            constraints: BoxConstraints.tightFor(
-              height: _kHeaderHeight,
-              width: colSizes[col],
+              decoration: hasHeaderBorder
+                  ? BoxDecoration(border: Border(bottom: tableBorder.top))
+                  : null,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  return widget.tableHeaderBuilder(
+                    context,
+                    mappedIndex,
+                  );
+                },
+              ),
             ),
-            child: result,
-          );
-        }).toList(),
+            ...List.generate(widget.itemCount, (index) {
+              BoxDecoration decoration = const BoxDecoration();
+
+              if (widget.tableBorder != null &&
+                  (widget.tableBorder!.horizontalInside != BorderSide.none ||
+                      widget.tableBorder!.verticalInside != BorderSide.none)) {
+                final isBottom = index < widget.itemCount - 1 || hasExtent;
+                final isRight = col < widget.colCount - 1 && col < lastNonZero;
+
+                final horizontalInside = widget.tableBorder!.horizontalInside;
+                final verticalInside = widget.tableBorder!.verticalInside;
+
+                final bottom = isBottom ? horizontalInside : BorderSide.none;
+
+                final right = isRight ? verticalInside : BorderSide.none;
+
+                final border = Border(bottom: bottom, right: right);
+                decoration = decoration.copyWith(border: border);
+              }
+
+              return DecoratedBox(
+                decoration: decoration,
+                child: widget.tableRowBuilder(
+                  context,
+                  index,
+                  mappedIndex,
+                ),
+              );
+            }).toList(),
+          ],
+        ),
       ),
     );
   }
 
-  Widget createList(int index) {
+  Widget createHeader() {
+    final TableBorder? tableBorder = widget.tableBorder;
     final int lastNonZero = colSizes.lastIndexWhere((elem) => elem > 0.0);
-    final List<double> colElems = colSizes.where((e) => e > 0.0).toList();
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.max,
+      children: List<Widget>.generate(colCount, (col) {
+        assert(col < colSizes.length);
+
+        final int mappedIndex = colIndexes?[col] ?? col;
+
+        Widget result;
+
+        if (colSizes[col] == 0.0 && draggingColumnIndex != col) {
+          return Container(); // TODO
+        }
+
+        result = widget.tableHeaderBuilder(
+          context,
+          mappedIndex,
+        );
+
+        result = Container(
+          color: Theme.of(context).colorScheme.background[0],
+          constraints: BoxConstraints.tightFor(
+            height: _kHeaderHeight,
+            width: colSizes[col],
+          ),
+          child: result,
+        );
+
+        if (!widget.allowColumnDragging || widget.colCount <= 1) {
+          return result;
+        }
+
+        return MouseRegion(
+          hitTestBehavior: HitTestBehavior.deferToChild,
+          cursor:
+              isDraggingColumn ? MouseCursor.defer : SystemMouseCursors.click,
+          child: LongPressDraggable<int>(
+            data: col,
+            child: result,
+            childWhenDragging: const SizedBox(),
+            onDragStarted: () {
+              setState(() {
+                draggingColumnIndex = col;
+                draggingColumnTargetIndex = -1;
+              });
+            },
+            onDraggableCanceled: (_, __) {
+              setState(() => draggingColumnIndex = -1);
+            },
+            onDragEnd: (details) {
+              setState(() => draggingColumnIndex = -1);
+            },
+            onDragCompleted: () {
+              setState(() => draggingColumnIndex = -1);
+            },
+            maxSimultaneousDrags: 1,
+            feedback: createHeaderFeedback(col, lastNonZero),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget createList(int index) {
+    final List<int> colElemIndexes = List.empty(growable: true);
+
+    for (int i = 0; i < colSizes.length; i += 1) {
+      if (colSizes[i] > 0.0) {
+        colElemIndexes.add(i);
+      }
+    }
+
+    final ListTableThemeData listTableThemeData = ListTableTheme.of(context);
+
+    final Color? backgroundColor =
+        pressedIndex == index || waitingIndex == index
+            ? listTableThemeData.highlightColor
+            : hoveredIndex == index
+                ? listTableThemeData.hoverColor
+                : (index.isEven
+                    ? Theme.of(context).colorScheme.background[0]
+                    : Theme.of(context).colorScheme.background[4]);
+
+    BoxDecoration decoration = BoxDecoration(color: backgroundColor);
+
+    if (widget.tableBorder != null &&
+        (widget.tableBorder!.horizontalInside != BorderSide.none)) {
+      final isBottom = index < widget.itemCount - 1 || hasExtent;
+
+      final horizontalInside = widget.tableBorder!.horizontalInside;
+
+      final bottom = isBottom ? horizontalInside : BorderSide.none;
+
+      final border = Border(bottom: bottom);
+      //decoration = decoration.copyWith(border: border);
+    }
 
     return MouseRegion(
-      onEnter: (_) => dragging ? null : setState(() => hoveredIndex = index),
-      onExit: (_) => dragging ? null : setState(() => hoveredIndex = -1),
-      cursor: widget.onPressed != null
+      onEnter: (_) => dragging || isDraggingColumn
+          ? null
+          : setState(() => hoveredIndex = index),
+      onExit: (_) => dragging || isDraggingColumn
+          ? null
+          : setState(() => hoveredIndex = -1),
+      hitTestBehavior: HitTestBehavior.deferToChild,
+      cursor: widget.onPressed != null && !isDraggingColumn
           ? SystemMouseCursors.click
           : SystemMouseCursors.basic,
       child: GestureDetector(
@@ -234,226 +382,206 @@ class _ListTableState extends State<ListTable> implements _TableDragUpdate {
             : null,
         onSecondaryTapCancel: () => setState(() => pressedIndex = -1),
         behavior: HitTestBehavior.deferToChild,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.start,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          mainAxisSize: MainAxisSize.max,
-          children: List.generate(colElems.length, (col) {
-            assert(col < colSizes.length);
+        child: DecoratedBox(
+          decoration: decoration,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.max,
+            children: List.generate(colElemIndexes.length, (colIndex) {
+              final int col = colElemIndexes[colIndex];
+              final int mappedIndex = colIndexes?[col] ?? col;
 
-            Widget result = LayoutBuilder(
-              builder: (context, constraints) => widget.tableRowBuilder(
-                context,
-                index,
-                col,
-                constraints,
-              ),
-            );
+              assert(col < colSizes.length);
 
-            result = Align(alignment: Alignment.bottomLeft, child: result);
-
-            final ListTableThemeData listTableThemeData =
-                ListTableTheme.of(context);
-
-            final Color? backgroundColor =
-                pressedIndex == index || waitingIndex == index
-                    ? listTableThemeData.highlightColor
-                    : hoveredIndex == index
-                        ? listTableThemeData.hoverColor
-                        : null;
-
-            BoxDecoration decoration = BoxDecoration(color: backgroundColor);
-
-            // TODO(as): ???
-            if (widget.tableBorder != null &&
-                (widget.tableBorder!.horizontalInside != BorderSide.none ||
-                    widget.tableBorder!.verticalInside != BorderSide.none)) {
-              final isBottom = index < widget.itemCount - 1 || hasExtent;
-              final isRight = col < widget.colCount - 1 && col < lastNonZero;
-
-              final horizontalInside = widget.tableBorder!.horizontalInside;
-              final verticalInside = widget.tableBorder!.verticalInside;
-
-              final bottom = isBottom ? horizontalInside : BorderSide.none;
-
-              // TODO(as): Put this shit somewhere else.
-              final headerColumnBorder = widget.headerColumnBorder ??
-                  widget.tableBorder?.verticalInside;
-              final dragBorderWidth = headerColumnBorder != null &&
-                      headerColumnBorder != BorderSide.none
-                  ? headerColumnBorder.width +
-                      (headerColumnBorder.width / 2.0).roundToDouble()
-                  : 2.0;
-
-              final right = dragging && colDragging == col
-                  ? BorderSide(
-                      color: listTableThemeData.borderHighlightColor!,
-                      width: dragBorderWidth,
-                    )
-                  : isRight
-                      ? verticalInside
-                      : BorderSide.none;
-
-              final border = Border(bottom: bottom, right: right);
-              decoration = decoration.copyWith(border: border);
-            } else if (dragging && colDragging == col) {
-              final right = BorderSide(
-                color: listTableThemeData.borderHighlightColor!,
-                width: 2.0,
+              Widget result = LayoutBuilder(
+                builder: (context, constraints) => widget.tableRowBuilder(
+                  context,
+                  index,
+                  mappedIndex,
+                ),
               );
 
-              final border = Border(right: right);
-              decoration = decoration.copyWith(border: border);
-            }
+              result = Align(alignment: Alignment.bottomLeft, child: result);
 
-            return Container(
-              constraints: BoxConstraints.tightFor(
-                width: colSizes[col],
-              ),
-              decoration: decoration,
-              child: result,
-            );
-          }).toList(),
+              // TODO(as): ???
+              // if (widget.tableBorder != null &&
+              //     (widget.tableBorder!.horizontalInside != BorderSide.none ||
+              //         widget.tableBorder!.verticalInside != BorderSide.none)) {
+              //   final isBottom = index < widget.itemCount - 1 || hasExtent;
+              //   final isRight = col < colElemIndexes.length - 1;
+
+              //   final horizontalInside = widget.tableBorder!.horizontalInside;
+              //   final verticalInside = widget.tableBorder!.verticalInside;
+
+              //   final bottom = isBottom ? horizontalInside : BorderSide.none;
+
+              //   // TODO(as): ???
+              //   final headerColumnBorder = widget.headerColumnBorder ??
+              //       widget.tableBorder?.verticalInside;
+              //   final dragBorderWidth = headerColumnBorder != null &&
+              //           headerColumnBorder != BorderSide.none
+              //       ? headerColumnBorder.width +
+              //           (headerColumnBorder.width / 2.0).roundToDouble()
+              //       : 2.0;
+
+              //   final right = // FIXME HERE
+              //       dragging && colDragging == col
+              //           ? BorderSide(
+              //               color: listTableThemeData.borderHighlightColor!,
+              //               width: dragBorderWidth,
+              //             )
+              //           : isRight
+              //               ? verticalInside
+              //               : BorderSide.none;
+
+              //   final border = Border(bottom: bottom, right: right);
+              //   decoration = decoration.copyWith(border: border);
+              // } else if (dragging && colDragging == col) {
+              //   final right = BorderSide(
+              //     color: dragging
+              //         ? listTableThemeData.borderHighlightColor!
+              //         : listTableThemeData.borderColor!,
+              //     width: 2.0,
+              //   );
+
+              //   final border = Border(right: right);
+              //   decoration = decoration.copyWith(border: border);
+              // }
+              return ConstrainedBox(
+                constraints: BoxConstraints.tightFor(
+                  width: colSizes[col],
+                ),
+                child: result,
+              );
+            }).toList(),
+          ),
         ),
       ),
     );
   }
 
-  List<double> colSizes = List.empty(growable: true);
-  Map<int, double>? colFraction;
+  Widget createDraggingTarget() {
+    return LayoutBuilder(builder: (context, constraints) {
+      final List<int> indexes = List.empty(growable: true);
 
-  bool dragging = false;
-  int? colDragging;
-  double? previousWidth;
-  double? totalWidth;
-  List<double>? previousColSizes;
-  Map<int, double>? previousColFraction;
-
-  int get colCount => colSizes.length;
-
-  ScrollController? currentController;
-  ScrollController get controller =>
-      widget.controller ?? (currentController ??= ScrollController());
-
-  @override
-  void dragStart(int col) {
-    previousColFraction = Map<int, double>.from(colFraction!);
-    previousColSizes = List<double>.from(colSizes);
-
-    previousWidth = colSizes.sublist(col).reduce((v, e) => v + e);
-    dragging = true;
-    colDragging = col;
-  }
-
-  @override
-  void dragUpdate(int col, double delta) {
-    setState(() {
-      final int totalRemain = colCount - (col + 1);
-
-      if (delta < 0) {
-        delta = delta.clamp(-previousColSizes![col] + _kMinColumnWidth, 0.0);
-      } else {
-        // Calculates the maximum value for delta.
-        // final maxDeltaWidth = true
-        //     ? previousWidth! - previousColSizes![col]
-        //     : previousWidth! -
-        //         (totalRemain * _kMinColumnWidth) -
-        //         previousColSizes![col];
-
-        // if (maxDeltaWidth < 0.0) {
-        //   throw Exception('Invalid delta value in list table.');
-        // }
-
-        delta = delta.clamp(0.0, delta);
-      }
-
-      final double newWidth = previousColSizes![col] + delta;
-      colFraction![col] = newWidth / totalWidth!;
-
-      if (totalRemain > 0) {
-        final double valueEach = (delta / totalRemain).truncateToDouble();
-        double remWidth = previousWidth! - newWidth;
-
-        // final double firstNewWidth =
-        //     (previousColSizes![col + 1] - (delta / totalRemain))
-        //         .clamp(_kMinColumnWidth, remWidth)
-        //         .truncateToDouble();
-
-        // colFraction![col + 1] = firstNewWidth / totalWidth!;
-        // remWidth -= firstNewWidth;
-
-        for (var i = col + 1; i < colCount; i++) {
-          if (remWidth >= _kMinColumnWidth) {
-            final double newWidth = (previousColSizes![i] - valueEach)
-                .clamp(_kMinColumnWidth, remWidth);
-            colFraction![i] = newWidth / totalWidth!;
-
-            remWidth -= newWidth;
-          } else {
-            colFraction![i] = 0.0;
-          }
+      for (int i = 0; i < colSizes.length; i += 1) {
+        if (colSizes[i] > 0.0) {
+          indexes.add(i);
         }
-
-        // if (!widget.collapseOnDrag &&
-        //     colFraction!.values.any((e) => e == 0.0)) {
-        // TODO(as): Proper calculation.
-        //   for (var i = colCount - 1; i >= col + 1; i--) {
-        //     if (colFraction![i] == 0.0) {
-        //       colFraction![i] = _kMinColumnWidth / totalWidth!;
-        //       colFraction![i - 1] =
-        //           colFraction![i - 1]! - _kMinColumnWidth / totalWidth!;
-        //     }
-        //   }
-        // }
       }
+
+      final TableBorder tableBorder = widget.tableBorder ?? const TableBorder();
+
+      final TableBorder border = TableBorder(
+        left: tableBorder.left != BorderSide.none
+            ? tableBorder.left
+            : const BorderSide(),
+        right: tableBorder.right != BorderSide.none
+            ? tableBorder.right
+            : const BorderSide(),
+        verticalInside: tableBorder.verticalInside != BorderSide.none
+            ? tableBorder.verticalInside
+            : const BorderSide(),
+        top: tableBorder.top,
+        bottom: tableBorder.bottom,
+      );
+
+      final ListTableThemeData listTableThemeData = ListTableTheme.of(context);
+
+      final Color firstBorderColor = draggingColumnTargetIndex == 0
+          ? listTableThemeData.borderHoverColor!
+          : listTableThemeData.borderColor!;
+
+      final Color lastBorderColor =
+          draggingColumnTargetIndex == widget.colCount - 1
+              ? listTableThemeData.borderHoverColor!
+              : listTableThemeData.borderColor!;
+
+      return DecoratedBox(
+        position: DecorationPosition.foreground,
+        decoration: BoxDecoration(
+          border: Border(
+            top: border.top,
+            bottom: border.bottom,
+          ),
+        ),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            border: Border(
+              left: border.left.copyWith(
+                  color: firstBorderColor,
+                  width: draggingColumnTargetIndex == 0 ? 2.0 : 1.0),
+              right: border.right.copyWith(
+                color: lastBorderColor,
+                width: draggingColumnTargetIndex == widget.colCount - 1
+                    ? 2.0
+                    : 1.0,
+              ),
+            ),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: List.generate(widget.colCount, (index) {
+              final bool isLast = index == widget.colCount - 1;
+              final int col = isLast ? indexes[index - 1] : indexes[index];
+
+              return DragTarget<int>(
+                onMove: (details) {
+                  setState(() => draggingColumnTargetIndex = index);
+                },
+                onAccept: (columnIndex) {
+                  colIndexes ??=
+                      List.generate(widget.colCount, (index) => index);
+
+                  final int mappedIndex = colIndexes![columnIndex];
+
+                  colIndexes![columnIndex] = -1;
+
+                  if (draggingColumnTargetIndex == widget.colCount - 1) {
+                    colIndexes!.add(mappedIndex);
+                  } else {
+                    colIndexes!.insert(
+                        indexes[draggingColumnTargetIndex], mappedIndex);
+                  }
+
+                  colIndexes!.removeWhere((element) => element == -1);
+
+                  widget.onColumnIndexMappingChanged
+                      ?.call(List.from(colIndexes!));
+                },
+                builder: (context, candidateData, rejectedData) {
+                  final Color color = draggingColumnTargetIndex == index
+                      ? listTableThemeData.borderHoverColor!
+                      : listTableThemeData.borderColor!;
+
+                  final double width = isLast || index == colSizes.length - 2
+                      ? (colSizes[col] / 2.0).floorToDouble()
+                      : colSizes[col];
+
+                  final double borderWidth =
+                      draggingColumnTargetIndex == index ? 2.0 : 1.0;
+
+                  return Container(
+                    width: width,
+                    decoration: BoxDecoration(
+                      border: Border(
+                        left: index > 0 && !isLast
+                            ? border.verticalInside.copyWith(
+                                color: color,
+                                width: borderWidth,
+                              )
+                            : BorderSide.none,
+                      ),
+                    ),
+                  );
+                },
+              );
+            }),
+          ),
+        ),
+      );
     });
-  }
-
-  @override
-  void dragEnd() {
-    setState(() {
-      dragging = false;
-      totalWidth = null;
-      previousWidth = null;
-      previousColSizes = null;
-      previousColFraction = null;
-      colDragging = null;
-    });
-  }
-
-  @override
-  void dragCancel() => dragEnd();
-
-  @override
-  void initState() {
-    super.initState();
-  }
-
-  bool hasExtent = false;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-
-    WidgetsBinding.instance!.addPostFrameCallback((Duration duration) {
-      final position = controller.position;
-      position.didUpdateScrollPositionBy(0.0);
-      //hasExtent = position.maxScrollExtent > position.minScrollExtent;
-    });
-  }
-
-  bool _handleScrollNotification(ScrollNotification notification) {
-    final ScrollMetrics metrics = notification.metrics;
-
-    if (notification.depth == 0) {
-      // final y = metrics.maxScrollExtent <= metrics.minScrollExtent;
-      // if (hasExtent != y) {
-      // TODO(as): Necessary to show bottom border?
-      //   setState(() => hasExtent = y);
-      // }
-    }
-
-    return false;
   }
 
   void calculateColFractions() {
@@ -526,36 +654,36 @@ class _ListTableState extends State<ListTable> implements _TableDragUpdate {
 
     double remWidth = totalWidth!;
 
-    for (var i = 0; i < colCount; i++) {
+    for (int i = 0; i < colCount; i++) {
       if (remWidth <= 0.0) {
         remWidth = 0.0;
         break;
       }
 
-      if (colFraction!.containsKey(i)) {
+      final int mappedIndex = colIndexes?[i] ?? i;
+
+      if (colFraction!.containsKey(mappedIndex)) {
         if (remWidth >= _kMinColumnWidth) {
           // The last item.
-          if (i == colCount - 1) {
+          if (i == colCount - 1 ||
+              (draggingColumnIndex == colCount - 1 && i == colCount - 2)) {
             colSizes[i] = remWidth;
+
             remWidth = 0.0;
             break;
           }
 
-          double width = (colFraction![i]! * totalWidth!)
+          double width = (colFraction![mappedIndex]! * totalWidth!)
               .clamp(_kMinColumnWidth, remWidth);
 
-          if (dragging && false) {
-            colSizes[i] = width;
-          } else {
-            width = width.floorToDouble();
-            colSizes[i] = width;
-          }
+          width = draggingColumnIndex == i ? 0 : width.floorToDouble();
+          colSizes[i] = width;
 
           remWidth -= width;
 
           if (remWidth < 0.0) {
             throw Exception(
-                'Wrong fraction value at $i value ${colFraction![i]}.');
+                'Wrong fraction value at index $i, value ${colFraction![mappedIndex]}.');
           }
         } else {
           break;
@@ -571,189 +699,229 @@ class _ListTableState extends State<ListTable> implements _TableDragUpdate {
     }
   }
 
+  void dragStart(int col) {
+    previousColFraction = Map<int, double>.from(colFraction!);
+    previousColSizes = List<double>.from(colSizes);
+
+    previousWidth = colSizes.sublist(col).reduce((v, e) => v + e);
+    dragging = true;
+    colDragging = col;
+  }
+
+  void dragUpdate(int col, double delta) {
+    setState(() {
+      final int totalRemain = colCount - (col + 1);
+
+      final int mappedIndex = colIndexes?[col] ?? col;
+
+      if (delta < 0) {
+        delta = delta.clamp(-previousColSizes![col] + _kMinColumnWidth, 0.0);
+      } else {
+        // Calculates the maximum value for delta.
+        // final maxDeltaWidth = true
+        //     ? previousWidth! - previousColSizes![col]
+        //     : previousWidth! -
+        //         (totalRemain * _kMinColumnWidth) -
+        //         previousColSizes![col];
+
+        // if (maxDeltaWidth < 0.0) {
+        //   throw Exception('Invalid delta value in list table.');
+        // }
+
+        delta = delta.clamp(0.0, delta);
+      }
+
+      final double newWidth = previousColSizes![col] + delta;
+      colFraction![mappedIndex] = newWidth / totalWidth!;
+
+      if (totalRemain > 0) {
+        final double valueEach = (delta / totalRemain).truncateToDouble();
+        double remWidth = previousWidth! - newWidth;
+
+        // final double firstNewWidth =
+        //     (previousColSizes![col + 1] - (delta / totalRemain))
+        //         .clamp(_kMinColumnWidth, remWidth)
+        //         .truncateToDouble();
+
+        // colFraction![col + 1] = firstNewWidth / totalWidth!;
+        // remWidth -= firstNewWidth;
+
+        for (var i = col + 1; i < colCount; i++) {
+          final int mappedIndex = colIndexes?[i] ?? i;
+
+          if (remWidth >= _kMinColumnWidth) {
+            final double newWidth = (previousColSizes![i] - valueEach)
+                .clamp(_kMinColumnWidth, remWidth);
+            colFraction![mappedIndex] = newWidth / totalWidth!;
+
+            remWidth -= newWidth;
+          } else {
+            colFraction![mappedIndex] = 0.0;
+          }
+        }
+
+        // if (!widget.collapseOnDrag &&
+        //     colFraction!.values.any((e) => e == 0.0)) {
+        // TODO(as): Proper calculation.
+        //   for (var i = colCount - 1; i >= col + 1; i--) {
+        //     if (colFraction![i] == 0.0) {
+        //       colFraction![i] = _kMinColumnWidth / totalWidth!;
+        //       colFraction![i - 1] =
+        //           colFraction![i - 1]! - _kMinColumnWidth / totalWidth!;
+        //     }
+        //   }
+        // }
+      }
+    });
+  }
+
+  void dragEnd() {
+    setState(() {
+      dragging = false;
+      totalWidth = null;
+      previousWidth = null;
+      previousColSizes = null;
+      previousColFraction = null;
+      colDragging = null;
+    });
+  }
+
+  void dragCancel() => dragEnd();
+
+  @override
+  void initState() {
+    super.initState();
+
+    if (widget.allowColumnDragging && widget.columnIndexMapping != null) {
+      colIndexes = widget.columnIndexMapping;
+
+      for (int i = 0; i < widget.colCount; i += 1) {
+        if (!colIndexes!.contains(i)) {
+          throw Exception('Must have valid index in `columnIndexMapping`.');
+        }
+      }
+    }
+  }
+
+  bool hasExtent = false;
+
+  bool get showScrollbar => !dragging;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    WidgetsBinding.instance.addPostFrameCallback((Duration duration) {
+      final position = controller.position;
+      position.didUpdateScrollPositionBy(0.0);
+      //hasExtent = position.maxScrollExtent > position.minScrollExtent;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    Widget result = LayoutBuilder(
+    final ListTableThemeData listTableTheme = ListTableTheme.of(context);
+
+    final Widget result = LayoutBuilder(
       builder: (context, constraints) {
         totalWidth = constraints.maxWidth;
+        totalHeight = constraints.maxHeight;
+
         calculateColFractions();
         calculateColSizes();
 
-        hasHiddenColumns = !colSizes.every((elem) => elem > 0.0);
-
-        return Column(
+        return Stack(
           children: [
-            createHeader(),
-            Expanded(
-              child: ListView.custom(
-                childrenDelegate: SliverChildBuilderDelegate(
-                  (context, index) => createList(index),
-                  childCount: widget.itemCount,
+            Column(
+              children: [
+                createHeader(),
+                Expanded(
+                  child: ScrollConfiguration(
+                    behavior: ScrollConfiguration.of(context)
+                        .copyWith(scrollbars: showScrollbar),
+                    child: ListView.custom(
+                      childrenDelegate: SliverChildBuilderDelegate(
+                        (context, index) => createList(index),
+                        childCount: widget.itemCount,
+                      ),
+                      controller: controller,
+                      itemExtent: widget.itemExtent,
+                    ),
+                  ),
                 ),
-                controller: controller,
-                itemExtent: widget.itemExtent,
-              ),
+              ],
+            ),
+            _ListTableBorder(
+              headerColumnBorder: widget.headerColumnBorder ??
+                  widget.tableBorder?.verticalInside ??
+                  BorderSide.none,
+              tableBorder: widget.tableBorder ?? const TableBorder(),
+              colSizes: colSizes,
+              headerExtent: _kHeaderHeight,
+              dragCancel: dragCancel,
+              dragEnd: dragEnd,
+              dragStart: dragStart,
+              dragUpdate: dragUpdate,
+              highlightColor: listTableTheme.borderHighlightColor!,
+              hoverColor: listTableTheme.borderHoverColor!,
             ),
           ],
         );
       },
     );
 
-    final tableBorder = widget.tableBorder;
-
-    if (tableBorder != null &&
-        (tableBorder.left != BorderSide.none ||
-            tableBorder.right != BorderSide.none ||
-            tableBorder.top != BorderSide.none ||
-            tableBorder.bottom != BorderSide.none)) {
-      result = Container(
-        decoration: BoxDecoration(
-          border: Border(
-            left: tableBorder.left,
-            right: tableBorder.right,
-            top: tableBorder.top,
-            bottom: tableBorder.bottom,
-          ),
-        ),
-        child: result,
-      );
-    }
-
-    return NotificationListener<ScrollNotification>(
-      onNotification: _handleScrollNotification,
-      child: result,
-    );
+    return result;
   }
 }
 
-abstract class _TableDragUpdate {
-  void dragStart(int col);
-  void dragUpdate(int col, double value);
-  void dragEnd();
-  void dragCancel();
-}
-
-class _TableColHandler extends StatefulWidget {
-  const _TableColHandler({
-    required this.tableDragUpdate,
-    required this.col,
-    required this.hasIndicator,
-    this.border,
+class _ListTableBorder extends LeafRenderObjectWidget {
+  const _ListTableBorder({
     Key? key,
+    required this.headerColumnBorder,
+    required this.tableBorder,
+    required this.colSizes,
+    required this.headerExtent,
+    required this.dragCancel,
+    required this.dragEnd,
+    required this.dragStart,
+    required this.dragUpdate,
+    required this.highlightColor,
+    required this.hoverColor,
   }) : super(key: key);
 
-  final bool hasIndicator;
-  final _TableDragUpdate tableDragUpdate;
-  final int col;
-  final BorderSide? border;
+  final TableBorder tableBorder;
+  final BorderSide headerColumnBorder;
+  final List<double> colSizes;
+  final double headerExtent;
+  final Color highlightColor;
+  final Color hoverColor;
+  final void Function(int col) dragStart;
+  final void Function(int col, double value) dragUpdate;
+  final void Function() dragEnd;
+  final void Function() dragCancel;
 
   @override
-  _TableColHandlerState createState() => _TableColHandlerState();
-}
-
-class _TableColHandlerState extends State<_TableColHandler>
-    with ComponentStateMixin {
-  Map<Type, GestureRecognizerFactory> get _gestures {
-    final gestures = <Type, GestureRecognizerFactory>{};
-
-    gestures[HorizontalDragGestureRecognizer] =
-        GestureRecognizerFactoryWithHandlers<HorizontalDragGestureRecognizer>(
-      () => HorizontalDragGestureRecognizer(
-        debugOwner: this,
-      ),
-      (HorizontalDragGestureRecognizer instance) {
-        instance
-          ..dragStartBehavior = DragStartBehavior.down
-          ..onStart = _handleDragStart
-          ..onDown = _handleDragDown
-          ..onUpdate = _handleDragUpdate
-          ..onCancel = _handleDragCancel
-          ..onEnd = _handleDragEnd;
-      },
-    );
-
-    return gestures;
-  }
-
-  double? currentPosition;
-  _TableDragUpdate get tableUpdateColFactor => widget.tableDragUpdate;
-  int get col => widget.col;
-
-  void _handleDragStart(DragStartDetails details) {
-    tableUpdateColFactor.dragStart(col);
-    currentPosition = details.globalPosition.dx;
-  }
-
-  void _handleDragDown(DragDownDetails details) =>
-      setState(() => dragged = true);
-
-  void _handleDragUpdate(DragUpdateDetails details) {
-    tableUpdateColFactor.dragUpdate(
-        col, details.globalPosition.dx - currentPosition!);
-  }
-
-  void _handleDragEnd(DragEndDetails details) {
-    setState(() => dragged = false);
-    tableUpdateColFactor.dragEnd();
-  }
-
-  void _handleDragCancel() {
-    setState(() => dragged = false);
-    tableUpdateColFactor.dragCancel();
-  }
-
-  void _handleMouseEnter(PointerEnterEvent event) =>
-      setState(() => hovered = true);
-
-  void _handleMouseExit(PointerExitEvent event) =>
-      setState(() => hovered = false);
+  ListTableRender createRenderObject(BuildContext context) => ListTableRender(
+        tableBorder: tableBorder,
+        headerColumnBorder: headerColumnBorder,
+        colSizes: colSizes,
+        headerExtent: headerExtent,
+        dragCancel: dragCancel,
+        dragEnd: dragEnd,
+        dragStart: dragStart,
+        dragUpdate: dragUpdate,
+        highlightColor: highlightColor,
+        hoverColor: hoverColor,
+      );
 
   @override
-  Widget build(BuildContext context) {
-    final ListTableThemeData listTableTheme = ListTableTheme.of(context);
-
-    BorderSide? border = widget.border;
-    final bool expanded = hovered || dragged || widget.hasIndicator;
-
-    if (border != null && border != BorderSide.none) {
-      final Color borderColor = dragged
-          ? listTableTheme.borderHighlightColor!
-          : hovered
-              ? listTableTheme.borderHoverColor!
-              : widget.hasIndicator
-                  ? listTableTheme.borderIndicatorColor!
-                  : border.color;
-
-      border = border.copyWith(
-          color: borderColor,
-          width: expanded
-              ? border.width + (border.width / 2.0).roundToDouble()
-              : border.width);
-    } else {
-      final width = expanded ? 2.0 : 1.0;
-      final borderColor = dragged
-          ? listTableTheme.borderHighlightColor!
-          : hovered
-              ? listTableTheme.borderHoverColor!
-              : widget.hasIndicator
-                  ? listTableTheme.borderIndicatorColor!
-                  : listTableTheme.borderColor!;
-      border = BorderSide(width: width, color: borderColor);
-    }
-
-    return RawGestureDetector(
-      gestures: _gestures,
-      behavior: HitTestBehavior.translucent,
-      child: MouseRegion(
-        opaque: false,
-        cursor: SystemMouseCursors.click,
-        onEnter: _handleMouseEnter,
-        onExit: _handleMouseExit,
-        child: Container(
-          margin: const EdgeInsets.only(left: _kHandlerWidth),
-          decoration: BoxDecoration(border: Border(right: border)),
-        ),
-      ),
-    );
+  void updateRenderObject(BuildContext context, ListTableRender renderObject) {
+    renderObject
+      ..headerColumnBorder = headerColumnBorder
+      ..tableBorder = tableBorder
+      ..colSizes = colSizes
+      ..headerExtent = headerExtent
+      ..highlightColor = highlightColor
+      ..hoverColor = hoverColor;
   }
 }

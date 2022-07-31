@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'defaults.dart';
+import 'theme/primaryColor.dart';
 
 class OverviewPage extends StatefulWidget {
   OverviewPage({Key? key}) : super(key: key);
@@ -18,76 +19,66 @@ class _OverviewPageState extends State<OverviewPage> {
       controller: ScrollController(),
       child: Container(
         alignment: Alignment.topLeft,
-        margin: EdgeInsets.symmetric(horizontal: 16.0),
+        margin: const EdgeInsets.symmetric(horizontal: 16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Defaults.createHeader(context, 'Overview'),
             Defaults.createTitle(context, 'Resources'),
-            HyperlinkButton(
-              'Homepage',
-              onPressed: (_) async {
-                final link = 'https://github.com/adrianos42/desktop';
-                if (await canLaunch(link)) {
-                  await launch(link);
-                }
-              },
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                if (Theme.of(context).brightness == Brightness.dark)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: Image.asset(
+                      'assets/GitHub-Mark-Light-32px.png',
+                      width: 20.0,
+                      height: 20.0,
+                    ),
+                  ),
+                if (Theme.of(context).brightness == Brightness.light)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: Image.asset(
+                    'assets/GitHub-Mark-32px.png',
+                    width: 20.0,
+                    height: 20.0,
+                  ),),
+                HyperlinkButton(
+                  'Homepage [Github]',
+                  onPressed: (_) async {
+                    await launchUrl(
+                        Uri.parse('https://github.com/adrianos42/desktop'));
+                  },
+                ),
+              ],
             ),
-            // HyperlinkButton(
-            //   'Figma',
-            //   onPressed: (_) async {
-            //     final link =
-            //         'https://www.figma.com/file/WQCf5O9Jh7cLtOY4zRDL0U/Model?node-id=2%3A0';
-            //     if (await canLaunch(link)) {
-            //       await launch(link);
-            //     }
-            //   },
-            // ),
             Defaults.createTitle(context, 'Flutter resources'),
             HyperlinkButton(
               'Desktop support for Flutter',
               onPressed: (_) async {
-                final link = 'https://flutter.dev/desktop';
-                if (await canLaunch(link)) {
-                  await launch(link);
-                }
+                await launchUrl(Uri.parse('https://flutter.dev/desktop'));
               },
             ),
             HyperlinkButton(
               'Build and release a Linux app',
               onPressed: (_) async {
-                final link = 'https://flutter.dev/docs/deployment/linux';
-                if (await canLaunch(link)) {
-                  await launch(link);
-                }
+                await launchUrl(
+                    Uri.parse('https://flutter.dev/docs/deployment/linux'));
               },
             ),
             HyperlinkButton(
               'Build and release a web app',
               onPressed: (_) async {
-                final link = 'https://flutter.dev/docs/deployment/web';
-                if (await canLaunch(link)) {
-                  await launch(link);
-                }
+                await launchUrl(
+                    Uri.parse('https://flutter.dev/docs/deployment/web'));
               },
             ),
             // Defaults.createTitle(context, 'Other projects using desktop'),
             // HyperlinkButton(
             //   'Music',
-            //   onPressed: (_) async {
-            //     final link = 'https://github.com/adrianos42/music';
-            //     if (await canLaunch(link)) {
-            //       await launch(link);
-            //     }
-            //   },
-            // ),
-            // HyperlinkButton(
-            //   'Photos',
-            //   onPressed: (_) async {
-            //     final link = 'https://github.com/adrianos42/photos';
-            //     if (await canLaunch(link)) {
-            //       await launch(link);
-            //     }
+            //    await parse(Uri.dataFromString('https://github.com/adrianos42/music'));
             //   },
             // ),
           ],

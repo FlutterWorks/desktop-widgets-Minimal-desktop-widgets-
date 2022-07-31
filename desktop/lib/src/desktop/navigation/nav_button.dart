@@ -1,5 +1,3 @@
-import 'package:flutter/foundation.dart';
-import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 
@@ -8,7 +6,9 @@ import '../theme/theme.dart';
 
 import 'nav.dart';
 
+/// Nav Group
 class NavGroup extends StatefulWidget {
+  ///
   const NavGroup({
     Key? key,
     required this.navItems,
@@ -389,7 +389,9 @@ class _RenderIconSide extends RenderConstrainedBox {
   }
 }
 
+///
 class NavMenuButton extends StatelessWidget {
+  ///
   const NavMenuButton(
     this.child, {
     Key? key,

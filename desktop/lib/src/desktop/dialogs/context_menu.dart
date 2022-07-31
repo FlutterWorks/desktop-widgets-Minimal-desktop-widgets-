@@ -129,12 +129,12 @@ class ContextMenuItemState<T, W extends ContextMenuItem<T>> extends State<W>
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance!.pointerRouter.addGlobalRoute(_mouseRoute);
+    WidgetsBinding.instance.pointerRouter.addGlobalRoute(_mouseRoute);
   }
 
   @override
   void dispose() {
-    WidgetsBinding.instance!.pointerRouter.removeGlobalRoute(_mouseRoute);
+    WidgetsBinding.instance.pointerRouter.removeGlobalRoute(_mouseRoute);
     super.dispose();
   }
 
@@ -290,15 +290,9 @@ class _ContextMenu<T> extends StatelessWidget {
       child: ListBody(children: children),
     );
 
-    final Widget child = Container(
+    final Widget child = ConstrainedBox(
       constraints: BoxConstraints.tightFor(
         width: menuWidth,
-      ),
-      decoration: BoxDecoration(
-        border: Border.all(
-          width: 1.0,
-          color: contextMenuThemeData.color!,
-        ),
       ),
       child: Semantics(
         scopesRoute: true,

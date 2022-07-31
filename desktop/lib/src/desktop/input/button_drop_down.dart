@@ -153,13 +153,13 @@ class _DropDownButtonState<T> extends State<DropDownButton<T>>
 
     _controller.forward();
 
-    WidgetsBinding.instance!.pointerRouter.addGlobalRoute(_mouseRoute);
+    WidgetsBinding.instance.pointerRouter.addGlobalRoute(_mouseRoute);
   }
 
   @override
   void dispose() {
     _controller.dispose();
-    WidgetsBinding.instance!.pointerRouter.removeGlobalRoute(_mouseRoute);
+    WidgetsBinding.instance.pointerRouter.removeGlobalRoute(_mouseRoute);
     super.dispose();
   }
 
@@ -226,7 +226,10 @@ class _DropDownButtonState<T> extends State<DropDownButton<T>>
 
         return DefaultTextStyle(
           style: buttonThemeData.textStyle!.copyWith(
-              color: !enabled ? buttonThemeData.disabledColor! : null),
+            color: !enabled
+                ? buttonThemeData.disabledColor!
+                : buttonThemeData.textStyle!.color,
+          ),
           child: Container(
             constraints: BoxConstraints(
               minHeight: contextMenuThemeData.itemHeight!,

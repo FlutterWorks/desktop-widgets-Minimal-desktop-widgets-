@@ -81,9 +81,13 @@ class _TextFieldSelectionGestureDetectorBuilder
               break;
             case PointerDeviceKind.touch:
             case PointerDeviceKind.unknown:
+              //case PointerDeviceKind.trackpad:
               // On macOS/iOS/iPadOS a touch tap places the cursor at the edge
               // of the word.
               renderEditable.selectWordEdge(cause: SelectionChangedCause.tap);
+
+              break;
+            default:
               break;
           }
           break;
@@ -573,18 +577,13 @@ class _TextFieldState extends State<TextField>
                 bucket: bucket,
                 child: Container(
                   decoration: decoration,
-                  child: Align(
-                    alignment: Alignment.center,
-                    widthFactor: 1.0,
-                    heightFactor: 1.0,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 4.0, vertical: 4.0),
-                      child:
-                          _selectionGestureDetectorBuilder.buildGestureDetector(
-                        behavior: HitTestBehavior.translucent,
-                        child: editable,
-                      ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 4.0, vertical: 4.0),
+                    child:
+                        _selectionGestureDetectorBuilder.buildGestureDetector(
+                      behavior: HitTestBehavior.translucent,
+                      child: editable,
                     ),
                   ),
                 ),
