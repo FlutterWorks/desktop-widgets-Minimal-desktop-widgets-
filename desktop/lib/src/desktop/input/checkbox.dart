@@ -12,29 +12,41 @@ const double _kCheckboxWidth = 14.0;
 const double _kEdgeSize = _kCheckboxWidth;
 const double _kStrokeWidth = 2.0;
 
-// thicc checkbox, maybe add option for mobile usage
-// _kCheckboxWidth = 16.0;
-
+/// [Checkbox] input.
 class Checkbox extends StatefulWidget {
+  /// Creates a [Checkbox].
   const Checkbox({
-    Key? key,
+    super.key,
     this.value,
     this.tristate = false,
     this.onChanged,
     this.focusNode,
     this.autofocus = false,
+    this.themeData,
+    this.forceEnabled = false,
   })  : assert(tristate || value != null),
-        super(key: key);
+        assert(!forceEnabled || onChanged == null,
+            'Cannot have `onChanged` when `forceEnabled` is true');
 
+  /// The value of the input.
   final bool? value;
 
+  /// If the checkbox is enabled without `onChanged` value.
+  final bool forceEnabled;
+
+  /// Called when the value changes.
   final ValueChanged<bool?>? onChanged;
 
+  /// If the checkbox has three states.
   final bool tristate;
 
+  /// The [FocusNode] of the checkbox.
   final FocusNode? focusNode;
 
+  /// See [FocusableActionDetector] field [autofocus].
   final bool autofocus;
+
+  final CheckboxThemeData? themeData;
 
   @override
   _CheckboxState createState() => _CheckboxState();
@@ -49,16 +61,12 @@ class _CheckboxState extends State<Checkbox> with TickerProviderStateMixin {
   late AnimationController _positionController;
   late AnimationController _hoverPositionController;
 
-  late TapGestureRecognizer _tap;
-
   @override
   void initState() {
     super.initState();
     _actionMap = <Type, Action<Intent>>{
       ActivateIntent: CallbackAction<ActivateIntent>(onInvoke: _actionHandler),
     };
-
-    _tap = TapGestureRecognizer()..onTap = _handleTap;
 
     _hoverPositionController = AnimationController(
       duration: _kHoverDuration,
@@ -86,8 +94,6 @@ class _CheckboxState extends State<Checkbox> with TickerProviderStateMixin {
 
   @override
   void dispose() {
-    _tap.dispose();
-
     _positionController.dispose();
     _hoverPositionController.dispose();
     super.dispose();
@@ -173,7 +179,7 @@ class _CheckboxState extends State<Checkbox> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    final theme = CheckboxTheme.of(context);
+    final theme = CheckboxTheme.of(context).merge(widget.themeData);
 
     final activeColor = theme.activeColor!;
     final hoverColor = widget.value != false
@@ -184,7 +190,7 @@ class _CheckboxState extends State<Checkbox> with TickerProviderStateMixin {
     // TODO(as): final focusColor = theme.activeHoverColor!;
     final disabledColor = theme.disabledColor!;
 
-    const Size size = Size.square(_kCheckboxWidth + 2);
+    const Size size = Size.square(_kCheckboxWidth);
     final BoxConstraints additionalConstraints = BoxConstraints.tight(size);
 
     return FocusableActionDetector(
@@ -195,21 +201,28 @@ class _CheckboxState extends State<Checkbox> with TickerProviderStateMixin {
       onShowHoverHighlight: _handleHoverChanged,
       onShowFocusHighlight: _handleFocusHighlightChanged,
       mouseCursor: enabled ? SystemMouseCursors.click : MouseCursor.defer,
-      child: Builder(
-        builder: (BuildContext context) {
-          return _CheckboxRenderObjectWidget(
-            value: widget.value,
-            state: this,
-            activeColor: activeColor,
-            hoverColor: hoverColor,
-            hovering: _hovering || _focused,
-            inactiveColor: inactiveColor,
-            disabledColor: disabledColor,
-            onChanged: enabled ? (value) => widget.onChanged!(value!) : null,
-            foregroundColor: foregroundColor,
-            additionalConstraints: additionalConstraints,
-          );
-        },
+      child: GestureDetector(
+        onTap: () => _handleTap(),
+        behavior: HitTestBehavior.opaque,
+        child: SizedBox(
+          width: theme.containerSize,
+          height: theme.containerSize,
+          child: Center(
+            child: _CheckboxRenderObjectWidget(
+              value: widget.value,
+              state: this,
+              activeColor: activeColor,
+              hoverColor: hoverColor,
+              hovering: _hovering || _focused,
+              inactiveColor: inactiveColor,
+              disabledColor: disabledColor,
+              onChanged: enabled ? (value) => widget.onChanged!(value!) : null,
+              foregroundColor: foregroundColor,
+              additionalConstraints: additionalConstraints,
+              forceEnabled: widget.forceEnabled,
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -228,6 +241,7 @@ class _CheckboxRenderObjectWidget extends LeafRenderObjectWidget {
     required this.hoverColor,
     required this.hovering,
     required this.additionalConstraints,
+    required this.forceEnabled,
   }) : super(key: key);
 
   final bool? value;
@@ -240,6 +254,7 @@ class _CheckboxRenderObjectWidget extends LeafRenderObjectWidget {
   final Color hoverColor;
   final bool hovering;
   final BoxConstraints additionalConstraints;
+  final bool forceEnabled;
 
   @override
   _RenderCheckbox createRenderObject(BuildContext context) => _RenderCheckbox(
@@ -253,6 +268,7 @@ class _CheckboxRenderObjectWidget extends LeafRenderObjectWidget {
         hoverColor: hoverColor,
         hovering: hovering,
         additionalConstraints: additionalConstraints,
+        forceEnabled: forceEnabled,
       );
 
   @override
@@ -266,6 +282,7 @@ class _CheckboxRenderObjectWidget extends LeafRenderObjectWidget {
       ..onChanged = onChanged
       ..hoverColor = hoverColor
       ..hovering = hovering
+      ..forceEnabled = forceEnabled
       ..additionalConstraints = additionalConstraints;
   }
 }
@@ -274,6 +291,7 @@ class _RenderCheckbox extends RenderConstrainedBox {
   _RenderCheckbox({
     bool? value,
     ValueChanged<bool>? onChanged,
+    required bool forceEnabled,
     required _CheckboxState state,
     required Color activeColor,
     required Color foregroundColor,
@@ -292,6 +310,7 @@ class _RenderCheckbox extends RenderConstrainedBox {
         _hoverColor = hoverColor,
         _hovering = hovering,
         _onChanged = onChanged,
+        _forceEnabled = forceEnabled,
         super(additionalConstraints: additionalConstraints);
 
   final _CheckboxState _state;
@@ -382,18 +401,18 @@ class _RenderCheckbox extends RenderConstrainedBox {
     }
   }
 
+  bool _forceEnabled;
+  set forceEnabled(bool value) {
+    if (value != _forceEnabled) {
+      _forceEnabled = value;
+      markNeedsPaint();
+    }
+  }
+
   bool get isInteractive => onChanged != null;
 
   @override
-  bool hitTestSelf(Offset position) => true;
-
-  @override
-  void handleEvent(PointerEvent event, BoxHitTestEntry entry) {
-    assert(debugHandleEvent(event, entry));
-    if (event is PointerDownEvent && isInteractive) {
-      _state._tap.addPointer(event);
-    }
-  }
+  bool hitTestSelf(Offset position) => false;
 
   @override
   void describeSemanticsConfiguration(SemanticsConfiguration config) {
@@ -413,7 +432,7 @@ class _RenderCheckbox extends RenderConstrainedBox {
   }
 
   Color _colorAt(double t) {
-    if (!isInteractive) {
+    if (!isInteractive && !_forceEnabled) {
       return disabledColor;
     }
 
@@ -428,7 +447,7 @@ class _RenderCheckbox extends RenderConstrainedBox {
 
   Paint _createStrokePaint() {
     return Paint()
-      ..color = foregroundColor
+      ..color = _state._hovering ? Color(0xFF000000) : foregroundColor
       ..style = PaintingStyle.stroke
       ..strokeWidth = _kStrokeWidth;
   }

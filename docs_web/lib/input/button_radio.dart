@@ -9,12 +9,13 @@ class ButtonRadioPage extends StatefulWidget {
 }
 
 class _ButtonRadioPageState extends State<ButtonRadioPage> {
-  bool value = false;
+  bool _value = false;
+  bool _disabled = false;
 
   @override
   Widget build(BuildContext context) {
     const enabledCode = '''
-Container(
+return Container(
   width: 100.0,
   child: Row(
     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -37,11 +38,11 @@ Container(
       ),
     ],
   ),
-)
+);
 ''';
 
     const disabledCode = '''
-Container(
+return Container(
   width: 100.0,
   child: Row(
     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -54,33 +55,33 @@ Container(
       ),
     ],
   ),
-)
+);
 ''';
 
-    return Defaults.createItemsWithTitle(
-      context,
+    return Defaults(
+      styleItems: Defaults.createStyle(RadioTheme.of(context).toString()),
       items: [
         ItemTitle(
           body: (context) => Align(
-            alignment: Alignment.centerLeft,
+            alignment: Alignment.center,
             child: SizedBox(
               width: 100.0,
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
                   Radio(
-                    value: value,
+                    value: _value,
                     onChanged: (fvalue) {
                       setState(() {
-                        value = true;
+                        _value = true;
                       });
                     },
                   ),
                   Radio(
-                    value: !value,
+                    value: !_value,
                     onChanged: (fvalue) {
                       setState(() {
-                        value = false;
+                        _value = false;
                       });
                     },
                   ),
@@ -90,11 +91,10 @@ Container(
           ),
           codeText: enabledCode,
           title: 'Enabled',
-          height: 400.0,
         ),
         ItemTitle(
           body: (context) => Align(
-            alignment: Alignment.centerLeft,
+            alignment: Alignment.center,
             child: SizedBox(
               width: 100.0,
               child: Row(
@@ -112,7 +112,6 @@ Container(
           ),
           codeText: disabledCode,
           title: 'Disabled',
-          height: 400.0,
         ),
       ],
       header: 'Radio',

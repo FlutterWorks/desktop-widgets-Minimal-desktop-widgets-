@@ -1,8 +1,6 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
 import '../theme/theme.dart';
-
 import 'button.dart';
 
 /// Callback that with [String] parameter.
@@ -14,7 +12,7 @@ class HyperlinkButton extends StatelessWidget {
   const HyperlinkButton(
     this.text, {
     Key? key,
-    this.onPressed,
+    required this.onPressed,
     this.padding,
     this.tooltip,
   }) : super(key: key);
@@ -36,8 +34,8 @@ class HyperlinkButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ButtonThemeData buttonThemeData = ButtonTheme.of(context);
-    final HyperlinkButtonThemeData hyperlinkButtonThemeData =
-        HyperlinkButtonTheme.of(context);
+    final HyperlinkThemeData hyperlinkButtonThemeData =
+        HyperlinkTheme.of(context);
 
     return ButtonTheme.merge(
       data: buttonThemeData.copyWith(

@@ -9,8 +9,6 @@ import '../icons.dart';
 import '../input/button.dart';
 import '../theme/theme.dart';
 
-const Duration _kFadeInDuration = Duration(milliseconds: 100);
-const Duration _kFadeOutDuration = Duration(milliseconds: 100);
 const Duration _kDefaultMessageDuration = Duration(seconds: 6);
 
 typedef _MessageReasonCallback = void Function(MessageClosedReason);
@@ -410,7 +408,7 @@ class _MessageState extends State<Message> {
   void _setFocus(bool value) {
     _hasFocus = value;
     if (value) {
-      widget.resumeTimer();
+      widget.stopTimer();
     } else {
       widget.remove(MessageClosedReason.dismiss);
     }
@@ -491,7 +489,7 @@ class _MessageState extends State<Message> {
                         padding: const EdgeInsets.only(bottom: 4),
                         child: Text(
                           widget.title!,
-                          textAlign: TextAlign.justify,
+                          textAlign: TextAlign.start,
                           style: textTheme.caption.copyWith(
                             fontWeight: FontWeight.w500,
                           ),
@@ -499,7 +497,7 @@ class _MessageState extends State<Message> {
                       ),
                     Text(
                       widget.message,
-                      textAlign: TextAlign.justify,
+                      textAlign: TextAlign.start,
                       style: textTheme.caption,
                     ),
                   ],

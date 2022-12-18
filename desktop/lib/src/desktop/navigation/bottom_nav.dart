@@ -2,8 +2,8 @@ import 'package:flutter/widgets.dart';
 
 import '../icons.dart';
 import '../theme/theme.dart';
-import 'nav.dart' show NavItem;
 import 'bottom_nav_button.dart';
+import 'nav.dart' show NavItem;
 import 'tab_scope.dart';
 
 export 'nav.dart' show NavItem;
@@ -14,55 +14,8 @@ const int _kIntialIndexValue = 0;
 const Duration _kMenuTransitionDuration = Duration(milliseconds: 400);
 const Curve _kDefaultAnimationCurve = Curves.linearToEaseOut;
 
-/// Navigation widget [BottomNav]...
-///
-///```dart
-/// BottomNav(
-///   trailingMenu: [
-///     NavItem(
-///       title: 'home',
-///       builder: (context) => NavDialog(
-///         child: Container(
-///           alignment: Alignment.center,
-///           padding: EdgeInsets.all(32.0),
-///           width: 600.0,
-///           child: Text('Home page'),
-///         ),
-///       ),
-///       icon: Icons.home,
-///     ),
-///     NavItem(
-///       title: 'settings',
-///       builder: (context) => NavDialog(
-///         child: Container(
-///           alignment: Alignment.center,
-///           padding: EdgeInsets.all(32.0),
-///           width: 600.0,
-///           child: Text('Settings page'),
-///         ),
-///       ),
-///       icon: Icons.settings,
-///     ),
-///   ],
-///   items: [
-///     NavItem(
-///       builder: (context) => Center(child: Text('page1')),
-///       title: 'page1',
-///       icon: Icons.today,
-///     ),
-///     NavItem(
-///       builder: (context) => Center(child: Text('page2')),
-///       title: 'page2',
-///       icon: Icons.stars,
-///     ),
-///     NavItem(
-///       builder: (context) => Center(child: Text('page3')),
-///       title: 'page3',
-///       icon: Icons.share,
-///     ),
-///   ],
-/// )
-///```
+// TODO(as): 
+/// EXPERIMENTAL!!!
 class BottomNav extends StatefulWidget {
   /// Creates a navigation bar.
   const BottomNav({
@@ -215,7 +168,7 @@ class _BottomNavState extends State<BottomNav>
         _menuActive ? Icons.close : Icons.menu,
         active: _menuActive,
         onPressed: _showMenu,
-        height: navThemeData.width + 4.0,
+        height: navThemeData.width! + 4.0,
       ),
     );
   }

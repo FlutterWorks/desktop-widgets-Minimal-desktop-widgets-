@@ -1,5 +1,29 @@
 # Changelog
 
+## 4.0.0-dev.6
+
+- Add support for `ListTable` in unbounded constraints.
+
+## 4.0.0-dev.5
+
+- Fixes `TextField` issue for flutter stable channel.
+
+## 4.0.0-dev.4
+
+- Creates `TextFormField`.
+
+## 4.0.0-dev.3
+
+- Fixes indicator in `ListTable`.
+
+## 4.0.0-dev.2
+
+- Fixes column indicator in `ListTable`.
+
+## 4.0.0-dev.1
+
+- Implements ability to drag columns in a `ListTable`.
+
 ## 3.1.5
 
 - Fixes instance null check.

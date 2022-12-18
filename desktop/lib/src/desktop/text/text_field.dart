@@ -1,5 +1,3 @@
-//import 'editable_text.dart';
-
 import 'package:flutter/foundation.dart' show defaultTargetPlatform;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
@@ -17,6 +15,9 @@ export 'package:flutter/services.dart'
 
 const double _kCursorWidth = 1.0;
 const double _kBorderWidth = 1.0;
+
+// TODO(as): Set in theme data.
+const double _kDefaultHeight = 32.0;
 
 class _TextFieldSelectionGestureDetectorBuilder
     extends TextSelectionGestureDetectorBuilder {
@@ -76,14 +77,10 @@ class _TextFieldSelectionGestureDetectorBuilder
             case PointerDeviceKind.mouse:
             case PointerDeviceKind.stylus:
             case PointerDeviceKind.invertedStylus:
-              // Precise devices should place the cursor at a precise position.
               renderEditable.selectPosition(cause: SelectionChangedCause.tap);
               break;
             case PointerDeviceKind.touch:
             case PointerDeviceKind.unknown:
-              //case PointerDeviceKind.trackpad:
-              // On macOS/iOS/iPadOS a touch tap places the cursor at the edge
-              // of the word.
               renderEditable.selectWordEdge(cause: SelectionChangedCause.tap);
 
               break;
@@ -172,12 +169,16 @@ class TextField extends StatefulWidget {
     this.onAppPrivateCommand,
     this.selectionControls,
     this.textInputAction,
+    this.scrollBehavior,
     SmartDashesType? smartDashesType,
     SmartQuotesType? smartQuotesType,
     TextInputType? keyboardType,
     ToolbarOptions? toolbarOptions,
     this.scrollPadding = const EdgeInsets.all(0),
     this.textCapitalization = TextCapitalization.none,
+    this.maxLengthEnforcement,
+    // TODO(as): Remove it when TextField's style is created.
+    this.padding,
   })  : smartDashesType = smartDashesType ??
             (obscureText ? SmartDashesType.disabled : SmartDashesType.enabled),
         smartQuotesType = smartQuotesType ??
@@ -344,6 +345,17 @@ class TextField extends StatefulWidget {
   /// {@macro flutter.services.TextInputConfiguration.enableIMEPersonalizedLearning}
   final bool enableIMEPersonalizedLearning;
 
+  /// {@macro flutter.services.textFormatter.effectiveMaxLengthEnforcement}
+  ///
+  /// {@macro flutter.services.textFormatter.maxLengthEnforcement}
+  final MaxLengthEnforcement? maxLengthEnforcement;
+
+  /// {@template flutter.widgets.shadow.scrollBehavior}
+  final ScrollBehavior? scrollBehavior;
+
+  ///
+  final EdgeInsets? padding;
+
   @override
   _TextFieldState createState() => _TextFieldState();
 }
@@ -363,6 +375,11 @@ class _TextFieldState extends State<TextField>
 
   late _TextFieldSelectionGestureDetectorBuilder
       _selectionGestureDetectorBuilder;
+
+  MaxLengthEnforcement get _effectiveMaxLengthEnforcement =>
+      widget.maxLengthEnforcement ??
+      LengthLimitingTextInputFormatter.getDefaultMaxLengthEnforcement(
+          defaultTargetPlatform);
 
   EditableTextState? get _editableText => editableTextKey.currentState;
 
@@ -474,22 +491,19 @@ class _TextFieldState extends State<TextField>
     final TextEditingController controller = _effectiveController;
     final FocusNode focusNode = _effectiveFocusNode;
 
-    final ThemeData theme = Theme.of(context);
+    final ThemeData themeData = Theme.of(context);
     final bool enabled = widget.enabled;
 
-    final textTheme = theme.textTheme;
-    final colorScheme = theme.colorScheme;
+    final textTheme = themeData.textTheme;
+    final colorScheme = themeData.colorScheme;
 
-    final Color background = enabled
-        ? focusNode.hasFocus
-            ? colorScheme.background[0]
-            : colorScheme.background[0].withAlpha(0)
-        : colorScheme.shade[90];
+    final Color background =
+        enabled ? colorScheme.background[0] : colorScheme.shade[90];
     final Color characterColor =
         enabled ? textTheme.textHigh : colorScheme.disabled;
     final Color selectionColor = enabled ? colorScheme.primary[30] : background;
     final Color borderColor =
-        focusNode.hasFocus ? colorScheme.shade[50] : colorScheme.shade[40];
+        focusNode.hasFocus ? colorScheme.shade[50] : colorScheme.shade[30];
 
     final textStyle = textTheme.body1.copyWith(
       color: characterColor,
@@ -509,6 +523,15 @@ class _TextFieldState extends State<TextField>
         ? SystemMouseCursors.text
         : SystemMouseCursors.basic;
 
+    final List<TextInputFormatter> formatters = <TextInputFormatter>[
+      ...?widget.inputFormatters,
+      if (widget.maxLength != null)
+        LengthLimitingTextInputFormatter(
+          widget.maxLength,
+          maxLengthEnforcement: _effectiveMaxLengthEnforcement,
+        ),
+    ];
+
     final editable = EditableText(
       autocorrect: widget.autocorrect,
       autofocus: widget.autofocus,
@@ -526,7 +549,7 @@ class _TextFieldState extends State<TextField>
       enableSuggestions: widget.enableSuggestions,
       expands: widget.expands,
       focusNode: focusNode,
-      inputFormatters: widget.inputFormatters,
+      inputFormatters: formatters,
       key: editableTextKey,
       keyboardAppearance: keyboardAppearance,
       keyboardType: widget.keyboardType,
@@ -542,7 +565,7 @@ class _TextFieldState extends State<TextField>
       readOnly: widget.readOnly,
       rendererIgnoresPointer: true,
       restorationId: 'editable',
-      scrollBehavior: const _InputScrollBehavior(),
+      scrollBehavior: widget.scrollBehavior ?? const _InputScrollBehavior(),
       scrollController: widget.scrollController,
       scrollPadding: widget.scrollPadding,
       selectionColor: enabled ? selectionColor : colorScheme.background[0],
@@ -562,10 +585,11 @@ class _TextFieldState extends State<TextField>
       mouseCursor: MouseCursor.defer,
     );
 
+    final bool isMultiline = widget.maxLines != 1;
+
     final Widget result = ScrollConfiguration(
       behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
-      child: FocusTrapArea(
-        focusNode: focusNode,
+      child: TextFieldTapRegion(
         child: MouseRegion(
           cursor: effectiveMouseCursor,
           onEnter: (_) => _handleHover(true),
@@ -577,9 +601,14 @@ class _TextFieldState extends State<TextField>
                 bucket: bucket,
                 child: Container(
                   decoration: decoration,
+                  height: isMultiline ? _kDefaultHeight : null,
+                  alignment: isMultiline ? Alignment.topLeft : Alignment.center,
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 4.0, vertical: 4.0),
+                    padding: widget.padding ??
+                        const EdgeInsets.symmetric(
+                          horizontal: 4.0,
+                          vertical: 4.0,
+                        ),
                     child:
                         _selectionGestureDetectorBuilder.buildGestureDetector(
                       behavior: HitTestBehavior.translucent,

@@ -1,6 +1,6 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
-import 'package:flutter/gestures.dart';
 
 import '../theme/theme.dart';
 
@@ -10,11 +10,12 @@ const double _kStrokeWidth = 2.0;
 const double _kOuterRadius = 7.0;
 const double _kInnerRadius = 4.0;
 
-// thicc radio button, maybe add option for mobile usage
-// outerRadius = 8.0;
-// innerRadius = outerRadius - (strokeWidth * 2.0);
+const double _kContainerHeight = 32.0;
+const double _kContainerWidth = 32.0;
 
+///
 class Radio extends StatefulWidget {
+  ///
   const Radio({
     Key? key,
     required this.value,
@@ -44,16 +45,12 @@ class _RadioState extends State<Radio> with TickerProviderStateMixin {
   late AnimationController _positionController;
   late AnimationController _hoverPositionController;
 
-  late TapGestureRecognizer _tap;
-
   @override
   void initState() {
     super.initState();
     _actionMap = <Type, Action<Intent>>{
       ActivateIntent: CallbackAction(onInvoke: _actionHandler),
     };
-
-    _tap = TapGestureRecognizer()..onTap = _handleTap;
 
     _hoverPositionController = AnimationController(
       duration: _kHoverDuration,
@@ -81,8 +78,6 @@ class _RadioState extends State<Radio> with TickerProviderStateMixin {
 
   @override
   void dispose() {
-    _tap.dispose();
-
     _positionController.dispose();
     _hoverPositionController.dispose();
     super.dispose();
@@ -143,7 +138,7 @@ class _RadioState extends State<Radio> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    final theme = RadioButtonTheme.of(context);
+    final theme = RadioTheme.of(context);
 
     final activeColor = theme.activeColor!;
     final hoverColor =
@@ -167,21 +162,27 @@ class _RadioState extends State<Radio> with TickerProviderStateMixin {
       mouseCursor: !widget.value && enabled
           ? SystemMouseCursors.click
           : MouseCursor.defer,
-      child: Builder(
-        builder: (BuildContext context) {
-          return _RadioRenderObjectWidget(
-            value: widget.value,
-            state: this,
-            activeColor: activeColor,
-            hoverColor: hoverColor,
-            hovering: _hovering || _focused,
-            inactiveColor: inactiveColor,
-            disabledColor: disabledColor,
-            onChanged: enabled ? (value) => widget.onChanged!(value!) : null,
-            foregroundColor: foregroundColor,
-            additionalConstraints: additionalConstraints,
-          );
-        },
+      child: GestureDetector(
+        onTap: () => _handleTap(),
+        behavior: HitTestBehavior.opaque,
+        child: SizedBox(
+          width: _kContainerWidth,
+          height: _kContainerHeight,
+          child: Center(
+            child: _RadioRenderObjectWidget(
+              value: widget.value,
+              state: this,
+              activeColor: activeColor,
+              hoverColor: hoverColor,
+              hovering: _hovering || _focused,
+              inactiveColor: inactiveColor,
+              disabledColor: disabledColor,
+              onChanged: enabled ? (value) => widget.onChanged!(value!) : null,
+              foregroundColor: foregroundColor,
+              additionalConstraints: additionalConstraints,
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -378,15 +379,7 @@ class _RenderRadio extends RenderConstrainedBox {
   }
 
   @override
-  bool hitTestSelf(Offset position) => true;
-
-  @override
-  void handleEvent(PointerEvent event, BoxHitTestEntry entry) {
-    assert(debugHandleEvent(event, entry));
-    if (event is PointerDownEvent && isInteractive) {
-      _state._tap.addPointer(event);
-    }
-  }
+  bool hitTestSelf(Offset position) => false;
 
   @override
   void describeSemanticsConfiguration(SemanticsConfiguration config) {

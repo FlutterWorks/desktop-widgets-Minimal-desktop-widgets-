@@ -14,30 +14,30 @@ class _ToggleSwitchPageState extends State<ToggleSwitchPage> {
   @override
   Widget build(BuildContext context) {
     const enabledCode = '''
-ToggleSwitch(
+return ToggleSwitch(
   onChanged: (fvalue) {
     setState(() => value = fvalue);
   },
   autofocus: false,
   value: value,
-)
+);
 ''';
 
     const disabledCode = '''
-ToggleSwitch(
+return ToggleSwitch(
   autofocus: false,
   value: false,
-)
+);
 ''';
 
-    return Defaults.createItemsWithTitle(
-      context,
+    return Defaults(
+      styleItems: Defaults.createStyle(ToggleSwitchTheme.of(context).toString()),
       items: [
         ItemTitle(
           body: (context) => Align(
-            alignment: Alignment.centerLeft,
+            alignment: Alignment.center,
             child: SizedBox(
-              width: 100.0,
+              width: 200.0,
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -55,11 +55,10 @@ ToggleSwitch(
           ),
           codeText: enabledCode,
           title: 'Enabled',
-          height: 200.0,
         ),
         ItemTitle(
           body: (context) => Align(
-            alignment: Alignment.centerLeft,
+            alignment: Alignment.center,
             child: SizedBox(
               width: 100.0,
               child: Row(
@@ -76,7 +75,6 @@ ToggleSwitch(
           ),
           codeText: disabledCode,
           title: 'Disabled',
-          height: 200.0,
         ),
       ],
       header: 'Toggle switch',

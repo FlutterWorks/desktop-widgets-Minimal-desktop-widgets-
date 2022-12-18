@@ -45,7 +45,7 @@ class DesktopApp extends StatefulWidget {
     this.checkerboardRasterCacheImages = false,
     this.checkerboardOffscreenLayers = false,
     this.showSemanticsDebugger = false,
-    this.debugShowCheckedModeBanner = false,
+    this.debugShowCheckedModeBanner = true,
     this.shortcuts,
     this.actions,
     this.scrollBehavior,
@@ -80,7 +80,7 @@ class DesktopApp extends StatefulWidget {
     this.checkerboardRasterCacheImages = false,
     this.checkerboardOffscreenLayers = false,
     this.showSemanticsDebugger = false,
-    this.debugShowCheckedModeBanner = false,
+    this.debugShowCheckedModeBanner = true,
     this.shortcuts,
     this.actions,
     this.scrollBehavior,
@@ -249,22 +249,30 @@ class _DesktopAppState extends State<DesktopApp> {
       );
 
   Widget _builder(BuildContext context, Widget? child) {
-    return Overlay(
-      key: _overlayKey,
-      initialEntries: [
-        OverlayEntry(
-          maintainState: true,
-          opaque: true,
-          builder: (context) => Messenger(
-            child: Container(
-              color: Theme.of(context).colorScheme.background[0],
-              child: widget.builder != null
-                  ? widget.builder!(context, child)
-                  : child ?? const SizedBox.shrink(),
-            ),
-          ),
+    return SafeArea(
+      maintainBottomViewPadding: true,
+      child: Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
         ),
-      ],
+        child: Overlay(
+          key: _overlayKey,
+          initialEntries: [
+            OverlayEntry(
+              maintainState: true,
+              opaque: true,
+              builder: (context) => Messenger(
+                child: ColoredBox(
+                  color: Theme.of(context).colorScheme.background[0],
+                  child: widget.builder != null
+                      ? widget.builder!(context, child)
+                      : child ?? const SizedBox.shrink(),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -350,7 +358,12 @@ class _DesktopAppState extends State<DesktopApp> {
       data: effectiveThemeData,
       child: ScrollConfiguration(
         behavior: widget.scrollBehavior ?? const DesktopScrollBehavior(),
-        child: Builder(builder: _buildWidgetApp),
+        child: IconTheme(
+          data: IconThemeData(
+            color: effectiveThemeData.textTheme.textHigh,
+          ),
+          child: Builder(builder: _buildWidgetApp),
+        ),
       ),
     );
   }
@@ -359,7 +372,9 @@ class _DesktopAppState extends State<DesktopApp> {
 /// Default [ScrollBehavior] for desktop.
 class DesktopScrollBehavior extends ScrollBehavior {
   /// Creates a [DesktopScrollBehavior].
-  const DesktopScrollBehavior() : super();
+  const DesktopScrollBehavior({this.isAlwaysShown = true}) : super();
+
+  final bool isAlwaysShown;
 
   /// Applies a [Scrollbar] to the child widget.
   @override
@@ -375,6 +390,7 @@ class DesktopScrollBehavior extends ScrollBehavior {
           case TargetPlatform.windows:
             return Scrollbar(
               child: child,
+              isAlwaysShown: isAlwaysShown,
               controller: details.controller,
             );
           case TargetPlatform.android:
