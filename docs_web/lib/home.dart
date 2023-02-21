@@ -12,7 +12,7 @@ import 'theme/primaryColor.dart';
 import 'theme/typography.dart';
 import 'overview.dart';
 
-const String _version = 'dev.4.2.67';
+const String _version = 'dev.4.2.69';
 
 ///
 class DocHome extends StatefulWidget {
@@ -382,7 +382,7 @@ class DocApp extends StatelessWidget {
               titleBuilder: (context) => const Text('Radio'),
               builder: (context) => ButtonRadioPage(),
             ),
-            if (!kReleaseMode)
+            if (!kReleaseMode && false)
               TreeNode.child(
                 titleBuilder: (context) => const Text('Select'),
                 builder: (context) => SelectInputPage(),
