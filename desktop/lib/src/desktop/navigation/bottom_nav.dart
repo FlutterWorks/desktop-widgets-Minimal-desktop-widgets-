@@ -7,7 +7,7 @@ import 'nav.dart' show NavItem;
 import 'tab_scope.dart';
 
 export 'nav.dart' show NavItem;
-export 'tab_scope.dart' show TabScope, RouteBuilder;
+export 'tab_scope.dart' show TabScope;
 
 const int _kIntialIndexValue = 0;
 
@@ -19,12 +19,11 @@ const Curve _kDefaultAnimationCurve = Curves.linearToEaseOut;
 class BottomNav extends StatefulWidget {
   /// Creates a navigation bar.
   const BottomNav({
-    Key? key,
+    super.key,
     required this.items,
     required this.trailingMenu,
     this.isBackButtonEnabled,
-  })  : assert(items.length > 0),
-        super(key: key);
+  })  : assert(items.length > 0);
 
   /// The items with builder and route names for transition among pages.
   final List<NavItem> items;

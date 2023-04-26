@@ -21,10 +21,10 @@ class StyleItem {
 class ItemTitle {
   ///
   const ItemTitle({
-    required this.body,
     this.codeText,
     this.options,
     required this.title,
+    required this.body,
   });
 
   ///
@@ -379,23 +379,6 @@ class Defaults extends StatefulWidget {
             .toList(),
       ),
     );
-
-    for (final styleItem in styleItems) {
-      items.add(
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [Defaults.createTitle(context, styleItem.title)],
-        ),
-      );
-    }
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12.0),
-      child: Column(
-        children: items,
-      ),
-    );
   }
 
   @override
@@ -461,7 +444,7 @@ class App extends StatelessWidget {
             builder: (context) {
               return _shouldBuildView[index]
                   ? widget.items[index].body(context)
-                  : Container();
+                  : const SizedBox();
             },
           ),
         ),
@@ -484,8 +467,8 @@ class App extends StatelessWidget {
           child: Tab(
             items: [
               TabItem(
-                itemBuilder: (context, _) => const Icon(Icons.visibility),
-                builder: (context, _) => Column(
+                itemBuilder: (context) => const Icon(Icons.visibility),
+                builder: (context) => Column(
                   children: [
                     Container(
                       decoration: Defaults.itemDecoration(context),
@@ -501,8 +484,8 @@ class App extends StatelessWidget {
               ),
               if (widget.styleItems != null)
                 TabItem(
-                  itemBuilder: (context, _) => const Icon(Icons.style),
-                  builder: (context, _) => Column(
+                  itemBuilder: (context) => const Icon(Icons.style),
+                  builder: (context) => Column(
                     children: [
                       Container(
                         decoration: Defaults.itemDecoration(context),
@@ -518,8 +501,8 @@ class App extends StatelessWidget {
                 ),
               if (widget.items[_index].codeText != null)
                 TabItem(
-                  itemBuilder: (context, _) => const Icon(Icons.code),
-                  builder: (context, _) => Container(
+                  itemBuilder: (context) => const Icon(Icons.code),
+                  builder: (context) => Container(
                     decoration: Defaults.itemDecoration(context),
                     padding: const EdgeInsets.symmetric(
                         vertical: 4.0, horizontal: 4.0),

@@ -10,12 +10,12 @@ import '../theme/theme.dart';
 class Button extends StatefulWidget {
   /// Creates a [Button].
   const Button({
-    Key? key,
+    super.key,
     this.body,
     this.trailing,
     this.leading,
     this.tooltip,
-    this.themeData,
+    this.theme,
     this.leadingPadding,
     this.padding,
     this.bodyPadding,
@@ -28,17 +28,16 @@ class Button extends StatefulWidget {
     required this.onPressed,
     this.willChangeState = false,
     this.enableAnimation = true,
-  })  : assert(body != null || trailing != null || leading != null),
-        super(key: key);
+  }) : assert(body != null || trailing != null || leading != null);
 
   /// Creates a button with a text.
   factory Button.text(
     String text, {
+    Key? key,
     double? fontSize,
     String? tooltip,
-    ButtonThemeData? style,
+    ButtonThemeData? theme,
     EdgeInsets? padding,
-    Key? key,
     FocusNode? focusNode,
     bool canRequestFocus = true,
     bool autofocus = false,
@@ -61,7 +60,7 @@ class Button extends StatefulWidget {
       autofocus: autofocus,
       active: active,
       willChangeState: willChangeState,
-      themeData: style,
+      theme: theme,
       enableAnimation: true,
       filled: false,
     );
@@ -70,17 +69,17 @@ class Button extends StatefulWidget {
   /// Creates a button with a icon.
   factory Button.icon(
     IconData icon, {
+    Key? key,
     String? tooltip,
     double? size,
     EdgeInsets? padding,
-    Key? key,
     FocusNode? focusNode,
     bool canRequestFocus = true,
     bool autofocus = false,
     bool? active,
     bool willChangeState = false,
     required VoidCallback? onPressed,
-    ButtonThemeData? style,
+    ButtonThemeData? theme,
   }) {
     return Button(
       body: Icon(icon, size: size),
@@ -96,17 +95,17 @@ class Button extends StatefulWidget {
       willChangeState: willChangeState,
       enableAnimation: true,
       filled: false,
-      themeData: style,
+      theme: theme,
     );
   }
 
   /// Creates a button with a filled background.
   factory Button.filled(
     String text, {
+    Key? key,
     double? fontSize,
     String? tooltip,
     EdgeInsets? padding,
-    Key? key,
     FocusNode? focusNode,
     bool canRequestFocus = true,
     bool autofocus = false,
@@ -114,7 +113,7 @@ class Button extends StatefulWidget {
     bool enableAnimation = false,
     bool willChangeState = false,
     required VoidCallback? onPressed,
-    ButtonThemeData? style,
+    ButtonThemeData? theme,
   }) {
     return Button(
       body: Text(
@@ -123,7 +122,7 @@ class Button extends StatefulWidget {
       ),
       padding: padding,
       bodyPadding: padding != null ? EdgeInsets.zero : null,
-      themeData: style,
+      theme: theme,
       tooltip: tooltip,
       onPressed: onPressed,
       key: key,
@@ -186,7 +185,7 @@ class Button extends StatefulWidget {
   final bool willChangeState;
 
   /// The style [ButtonThemeData] of the button.
-  final ButtonThemeData? themeData;
+  final ButtonThemeData? theme;
 
   @override
   _ButtonState createState() => _ButtonState();
@@ -297,7 +296,7 @@ class _ButtonState extends State<Button>
   void _updateColor([bool animates = true]) {
     if (mounted) {
       final ButtonThemeData buttonThemeData =
-          ButtonTheme.of(context).merge(widget.themeData);
+          ButtonTheme.of(context).merge(widget.theme);
 
       final Color disabledForeground = buttonThemeData.disabledColor!;
 
@@ -438,7 +437,7 @@ class _ButtonState extends State<Button>
   @override
   Widget build(BuildContext context) {
     final ButtonThemeData buttonThemeData =
-        ButtonTheme.of(context).merge(widget.themeData);
+        ButtonTheme.of(context).merge(widget.theme);
 
     final itemSpacing = buttonThemeData.itemSpacing!;
 
@@ -604,14 +603,14 @@ class _ButtonState extends State<Button>
 class ButtonScope extends InheritedWidget {
   /// Creates a [ButtonScope].
   const ButtonScope({
-    Key? key,
-    required Widget child,
+    super.key,
+    required super.child,
     required this.hovered,
     required this.pressed,
     required this.active,
     required this.disabled,
     required this.color,
-  }) : super(key: key, child: child);
+  });
 
   final bool hovered;
 

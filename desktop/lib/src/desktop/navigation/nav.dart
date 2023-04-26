@@ -5,7 +5,7 @@ import '../theme/theme.dart';
 import 'nav_button.dart';
 import 'tab_scope.dart';
 
-export 'tab_scope.dart' show TabScope, RouteBuilder;
+export 'tab_scope.dart' show TabScope;
 
 const int _kIntialIndexValue = 0;
 
@@ -80,15 +80,14 @@ class NavItem {
 class Nav extends StatefulWidget {
   /// Creates a navigation bar.
   const Nav({
-    Key? key,
+    super.key,
     required this.items,
     this.navAxis = Axis.vertical,
     this.trailingMenu,
     this.onPressBackButton,
     this.isBackButtonEnabled,
     this.visible = true,
-  })  : assert(items.length > 0),
-        super(key: key);
+  })  : assert(items.length > 0);
 
   /// The items with builder and route names for transition among pages.
   final List<NavItem> items;
@@ -96,7 +95,9 @@ class Nav extends StatefulWidget {
   /// Menu before the navigation items.
   final List<NavItem>? trailingMenu;
 
-  /// Callback for the back button. Defaults to null.
+  /// Callback for the back button. 
+  /// 
+  /// Defaults to null.
   final VoidCallback? onPressBackButton;
 
   /// If the back button should respond to user input.
@@ -404,12 +405,7 @@ class _NavState extends State<Nav> with SingleTickerProviderStateMixin {
           );
         });
   }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-  }
-
+  
   @override
   void didUpdateWidget(Nav oldWidget) {
     super.didUpdateWidget(oldWidget);

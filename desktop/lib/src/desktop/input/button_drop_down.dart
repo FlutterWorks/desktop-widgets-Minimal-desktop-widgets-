@@ -4,7 +4,6 @@ import '../component.dart';
 import '../dialogs/context_menu/context_menu.dart';
 import '../dialogs/tooltip.dart';
 import '../icons.dart';
-import '../theme/constants.dart';
 import '../theme/theme.dart';
 
 /// Button that shows a list of [ContextMenuItem] when pressed.
@@ -12,14 +11,15 @@ import '../theme/theme.dart';
 class DropDownButton<T> extends StatefulWidget {
   ///
   const DropDownButton({
-    Key? key,
+    super.key,
     required this.itemBuilder,
     this.value,
     this.onSelected,
     this.onCanceled,
     this.tooltip,
     this.enabled = true,
-  }) : super(key: key);
+    this.theme,
+  });
 
   /// The list of [ContextMenuItem] used for the context menu.
   final ContextMenuItemBuilder<T> itemBuilder;
@@ -39,6 +39,9 @@ class DropDownButton<T> extends StatefulWidget {
   /// If this button is enabled.
   final bool enabled;
 
+  /// The style [DropDownThemeData] of the drop down.
+  final DropDownThemeData? theme;
+
   @override
   _DropDownButtonState<T> createState() => _DropDownButtonState<T>();
 }
@@ -49,7 +52,7 @@ class _DropDownButtonState<T> extends State<DropDownButton<T>>
 
   Future<void> showButtonMenu() async {
     final RenderBox button = context.findRenderObject()! as RenderBox;
-    final RenderBox overlay = Overlay.of(context, rootOverlay: true)!
+    final RenderBox overlay = Overlay.of(context, rootOverlay: true)
         .context
         .findRenderObject()! as RenderBox;
 
@@ -172,7 +175,8 @@ class _DropDownButtonState<T> extends State<DropDownButton<T>>
 
   @override
   Widget build(BuildContext context) {
-    final DropDownThemeData buttonThemeData = DropDownTheme.of(context);
+    final DropDownThemeData buttonThemeData =
+        DropDownTheme.of(context).merge(widget.theme);
 
     final bool enabled = widget.enabled;
 

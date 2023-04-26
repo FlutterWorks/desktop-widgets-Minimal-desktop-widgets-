@@ -57,7 +57,7 @@ class DialogThemeData {
   /// ```
   final EdgeInsets? bodyPadding;
 
-  /// The background [Color].
+  /// The background color.
   ///
   /// Defaults to:
   ///
@@ -66,7 +66,7 @@ class DialogThemeData {
   /// ```
   final Color? background;
 
-  /// The barrier [Color].
+  /// The barrier color.
   ///
   /// Defaults to:
   ///
@@ -198,13 +198,13 @@ constraints: The [BoxConstraints] of the [Dialog].
  
  ```dart
  EdgeInsets.all(16.0)
- ```;;background: The background [Color].
+ ```;;background: The background color.
  
  Defaults to:
  
  ```dart
  colorScheme.background[0]
- ```;;barrierColor: The barrier [Color].
+ ```;;barrierColor: The barrier color.
  
  Defaults to:
  
@@ -233,23 +233,17 @@ constraints: The [BoxConstraints] of the [Dialog].
   }
 
   @override
-  bool operator ==(Object other) {
-    if (identical(this, other)) {
-      return true;
-    }
-    if (other.runtimeType != runtimeType) {
-      return false;
-    }
-    return other is DialogThemeData &&
+  bool operator ==(covariant DialogThemeData other) {
+    return identical(this, other) ||
         other.constraints == constraints &&
-        other.menuPadding == menuPadding &&
-        other.titlePadding == titlePadding &&
-        other.bodyPadding == bodyPadding &&
-        other.background == background &&
-        other.barrierColor == barrierColor &&
-        other.titleTextStyle == titleTextStyle &&
-        other.bodyTextAlign == bodyTextAlign &&
-        other.imageFilter == imageFilter;
+            other.menuPadding == menuPadding &&
+            other.titlePadding == titlePadding &&
+            other.bodyPadding == bodyPadding &&
+            other.background == background &&
+            other.barrierColor == barrierColor &&
+            other.titleTextStyle == titleTextStyle &&
+            other.bodyTextAlign == bodyTextAlign &&
+            other.imageFilter == imageFilter;
   }
 }
 

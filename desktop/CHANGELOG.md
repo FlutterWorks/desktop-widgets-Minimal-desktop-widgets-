@@ -1,5 +1,24 @@
 # Changelog
 
+## 4.1.0
+
+- Allow implementing `ShadeColor`, `BackgroundColor` and `PrimaryColor` for custom themes in `ThemeData`.
+
+## 4.0.0
+
+- Update for stable channel.
+- Theme option for widgets.
+- New options for `Tab`.
+- Possibility to drag `ListTable` columns.
+- Initial implementation for `DatePickerDialog`.
+- Initial implementation for `SelectableText`.
+- Initial impletmenation for `TextFormField`.
+- Fix progress widget styles.
+
+## 4.0.0-dev.7
+
+- Creates theme for linear and circular progress indicators.
+
 ## 4.0.0-dev.6
 
 - Add support for `ListTable` in unbounded constraints.

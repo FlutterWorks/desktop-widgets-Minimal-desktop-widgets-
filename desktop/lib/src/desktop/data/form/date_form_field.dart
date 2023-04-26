@@ -130,7 +130,7 @@ class DateFormField extends FormField<String> {
                 DecoratedBox(
                   decoration: decoration,
                   child: Padding(
-                    padding: decoration.padding!,
+                    padding: decoration.padding ?? EdgeInsets.zero,
                     child: Row(
                       children: [
                         Flexible(
@@ -151,7 +151,6 @@ class DateFormField extends FormField<String> {
                                 textDirection: textDirection,
                                 textCapitalization: TextCapitalization.none,
                                 autofocus: autofocus,
-                                toolbarOptions: toolbarOptions,
                                 readOnly: readOnly,
                                 showCursor: showCursor,
                                 autocorrect: false,
@@ -190,7 +189,7 @@ class DateFormField extends FormField<String> {
                           child: Button.icon(
                             Icons.edit_calendar,
                             active: field._calendarButtonActive,
-                            style: const ButtonThemeData(itemSpacing: 0.0),
+                            theme: const ButtonThemeData(itemSpacing: 0.0),
                             onPressed: field._openDatePicker,
                           ),
                         ),
@@ -264,7 +263,7 @@ class _TextFormFieldState extends FormFieldState<String> {
     final ColorScheme colorScheme = Theme.of(context).colorScheme;
 
     final RenderBox button = context.findRenderObject()! as RenderBox;
-    final RenderBox overlay = Overlay.of(context, rootOverlay: true)!
+    final RenderBox overlay = Overlay.of(context, rootOverlay: true)
         .context
         .findRenderObject()! as RenderBox;
 
@@ -291,7 +290,7 @@ class _TextFormFieldState extends FormFieldState<String> {
       background: colorScheme.background[8],
     );
 
-    Overlay.of(context, rootOverlay: true)!.insert(controller._overlayEntry);
+    Overlay.of(context, rootOverlay: true).insert(controller._overlayEntry);
 
     return controller._completer.future;
   }

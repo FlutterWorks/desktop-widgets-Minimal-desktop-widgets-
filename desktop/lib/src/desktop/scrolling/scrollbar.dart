@@ -25,7 +25,7 @@ const Curve _kAnimationCurveIncrement = Curves.easeOut;
 class Scrollbar extends StatefulWidget {
   /// Creates a desktop [Scrollbar].
   const Scrollbar({
-    Key? key,
+    super.key,
     required this.child,
     this.controller,
     this.autofocus = false,
@@ -34,7 +34,7 @@ class Scrollbar extends StatefulWidget {
     this.isAlwaysShown = true,
     this.thickness,
     this.notificationPredicate = defaultScrollNotificationPredicate,
-  }) : super(key: key);
+  });
 
   /// {@template flutter.widgets.Scrollbar.controller}
   /// The [ScrollController] used to implement Scrollbar dragging.
@@ -153,7 +153,7 @@ class _ScrollbarState extends State<Scrollbar>
           final ScrollIncrementCalculator? scrollIncrementCalculator =
               Scrollable.of(
                       _currentController!.position.context.notificationContext!)
-                  ?.widget
+                  .widget
                   .incrementCalculator;
           if (scrollIncrementCalculator != null) {
             scrollIncrement = scrollIncrementCalculator(ScrollIncrementDetails(
@@ -334,9 +334,11 @@ class _ScrollbarState extends State<Scrollbar>
 
   void _handleIncrement(double value) {
     final _position = _currentController!.position;
-    _position.moveTo(_position.pixels + value,
-        curve: _kAnimationCurveIncrement,
-        duration: _kAnimationDurationIncrement);
+    _position.moveTo(
+      _position.pixels + value,
+      curve: _kAnimationCurveIncrement,
+      duration: _kAnimationDurationIncrement,
+    );
   }
 
   bool _shouldUpdatePainter(Axis notificationAxis) {
@@ -434,7 +436,7 @@ class _ScrollbarState extends State<Scrollbar>
   void _maybeTriggerScrollbar() {
     WidgetsBinding.instance.addPostFrameCallback((Duration duration) {
       final ScrollController scrollController =
-          widget.controller ?? PrimaryScrollController.of(context)!;
+          widget.controller ?? PrimaryScrollController.of(context);
       scrollController.position.didUpdateScrollPositionBy(0);
 
       if (!_hideScroll) {
@@ -643,13 +645,10 @@ class _ScrollbarState extends State<Scrollbar>
 
 class _ThumbPressGestureRecognizer extends LongPressGestureRecognizer {
   _ThumbPressGestureRecognizer({
-    Object? debugOwner,
+    super.debugOwner,
     required GlobalKey customPaintKey,
   })  : _customPaintKey = customPaintKey,
-        super(
-          debugOwner: debugOwner,
-          duration: Duration.zero,
-        );
+        super(duration: Duration.zero);
 
   final GlobalKey _customPaintKey;
 
@@ -680,12 +679,9 @@ class _ThumbPressGestureRecognizer extends LongPressGestureRecognizer {
 
 class _TapGestureRecognizer extends TapGestureRecognizer {
   _TapGestureRecognizer({
-    Object? debugOwner,
+    super.debugOwner,
     required GlobalKey customPaintKey,
-  })  : _customPaintKey = customPaintKey,
-        super(
-          debugOwner: debugOwner,
-        );
+  }) : _customPaintKey = customPaintKey;
 
   final GlobalKey _customPaintKey;
   GlobalKey get customPaintKey => _customPaintKey;
