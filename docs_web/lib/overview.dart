@@ -1,5 +1,6 @@
 import 'package:desktop/desktop.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:jovial_svg/jovial_svg.dart';
 
 import 'defaults.dart';
 
@@ -66,8 +67,13 @@ class _OverviewPageState extends State<OverviewPage> {
                     padding: const EdgeInsets.only(top: 12.0),
                     child: Button(
                       padding: EdgeInsets.zero,
-                      body: Image.network(
-                          'https://img.shields.io/pub/v/desktop.png'),
+                      body: ScalableImageWidget.fromSISource(
+                        si: ScalableImageSource.fromSvgHttpUrl(
+                          Uri.parse(
+                            'https://img.shields.io/pub/v/desktop.svg?style=flat-square',
+                          ),
+                        ),
+                      ),
                       onPressed: () async {
                         await launchUrl(
                           Uri.parse('https://pub.dev/packages/desktop'),

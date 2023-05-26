@@ -1,5 +1,13 @@
 # Changelog
 
+## 4.4.1
+
+- Fixes `Tree` building when nodes change.
+
+## 4.4.0
+
+- Add long press callback in `Button`.
+
 ## 4.3.0
 
 - New dart version support.
