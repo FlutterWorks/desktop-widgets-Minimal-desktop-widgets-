@@ -121,8 +121,8 @@ return ListTable(
         final dialog = showDialog(
           context,
           builder: (context) => Dialog(
-            body: Text(dataTableRows[row][0]),
             title: Text(dataTableRows[row][2]),
+            body: Text(dataTableRows[row][0]),
           ),
         );
         await dialog.closed;
@@ -204,8 +204,8 @@ return ListTable(
                   onPressed: (_) async {
                     await Dialog.showDialog(
                       context,
-                      body: Text(dataTableRows[row][0]),
                       title: Text(dataTableRows[row][2]),
+                      body: Text(dataTableRows[row][0]),
                     );
                   },
                   builder: (context, col) => Container(
@@ -224,7 +224,7 @@ return ListTable(
           codeText: someDataSample,
           options: [
             Button.icon(
-              Icons.drag_indicator,
+              Icons.dragIndicator,
               active: _allowDragDataExample,
               tooltip: 'Allow column dragging',
               onPressed: () => setState(
@@ -262,7 +262,7 @@ return ListTable(
           codeText: codeSample,
           options: [
             Button.icon(
-              Icons.drag_indicator,
+              Icons.dragIndicator,
               tooltip: 'Allow column dragging',
               active: _allowDragBordelessExample,
               onPressed: () => setState(

@@ -13,7 +13,7 @@ import 'theme/typography.dart';
 import 'theme/custom_theme.dart';
 import 'overview.dart';
 
-const String _version = '4.4.1';
+const String _version = '5.0.0-dev.3';
 
 ///
 class DocHome extends StatefulWidget {
@@ -93,8 +93,8 @@ class _DocHomeState extends State<DocHome> {
           color: Theme.of(context).textTheme.textPrimaryHigh,
           highlightColor: ButtonTheme.of(context).color,
         ),
-        child: ContextMenuButton(
-          const Icon(Icons.palette),
+        child: ContextMenuButton.icon(
+          Icons.palette,
           itemBuilder: itemBuilder,
           value: primaryColor,
           onSelected: (PrimaryColors value) {
@@ -144,7 +144,7 @@ class _DocHomeState extends State<DocHome> {
                     Container(
                       padding: const EdgeInsets.only(left: 16.0),
                       child: Button.icon(
-                        Icons.menu_open,
+                        Icons.menuOpen,
                         theme: ButtonThemeData(
                           color: textTheme.textLow,
                           highlightColor: textTheme.textPrimaryHigh,
@@ -245,7 +245,7 @@ class _ThemeToggleState extends State<_ThemeToggle> {
     switch (themeData.brightness) {
       case Brightness.dark:
         return Button.icon(
-          Icons.dark_mode,
+          Icons.darkMode,
           onPressed: widget.onPressed,
           theme: ButtonThemeData(
             color: iconForeground,
@@ -253,7 +253,7 @@ class _ThemeToggleState extends State<_ThemeToggle> {
         );
       case Brightness.light:
         return Button.icon(
-          Icons.light_mode,
+          Icons.lightMode,
           onPressed: widget.onPressed,
           theme: ButtonThemeData(color: iconForeground),
         );
@@ -272,7 +272,7 @@ class DocApp extends StatelessWidget {
           if (kReleaseMode) {
             return const OverviewPage();
           } else {
-            return const OverviewPage();
+            return const DialogPage();
           }
         },
       ),
@@ -397,6 +397,10 @@ class DocApp extends StatelessWidget {
           TreeNode.child(
             titleBuilder: (context) => const Text('Text Field'),
             builder: (context) => const TextFieldPage(),
+          ),
+          TreeNode.child(
+            titleBuilder: (context) => const Text('Search Text Field'),
+            builder: (context) => const SearchTextFieldPage(),
           ),
           TreeNode.child(
             titleBuilder: (context) => const Text('Selectable Text'),

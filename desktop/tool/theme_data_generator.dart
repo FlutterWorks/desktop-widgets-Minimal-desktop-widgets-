@@ -1,3 +1,5 @@
+import 'package:analyzer/dart/element/nullability_suffix.dart'
+    show NullabilitySuffix;
 import 'package:build/build.dart';
 import 'package:code_builder/code_builder.dart';
 import 'package:source_gen/source_gen.dart';
@@ -105,10 +107,11 @@ class ThemeDataGenerator extends Generator {
           ..type = MethodType.getter
           ..body = Code(
             '''
-              return ${fields.fold(
-              '',
-              (String p, e) => '$p${p.isNotEmpty ? '&&' : ''}${e.name} != null',
-            )};
+              return ${fields.where((e) => e.type.nullabilitySuffix == NullabilitySuffix.none).fold(
+                  '',
+                  (String p, e) =>
+                      '$p${p.isNotEmpty ? '&&' : ''}${e.name} != null',
+                )};
           ''',
           )),
       );
