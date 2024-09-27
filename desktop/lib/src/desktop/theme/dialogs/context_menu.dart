@@ -30,8 +30,11 @@ class _ContextMenuThemeData {
   /// ```dart
   /// IconThemeData(size: kDefaultIconSize, color: textTheme.textHigh)
   /// ```
-  IconThemeData get iconThemeData =>
-      IconThemeData(size: kDefaultIconSize, color: textTheme.textHigh);
+  IconThemeData get iconThemeData => IconThemeData(
+        size: defaultIconSize,
+        color: textTheme.textHigh,
+        fill: 1.0,
+      );
 
   /// The menu step width.
   ///
@@ -83,10 +86,10 @@ class _ContextMenuThemeData {
   /// Defaults to:
   ///
   /// ```dart
-  /// textTheme.body1.copyWith(fontSize: kDefaultFontSize)
+  /// textTheme.body1.copyWith(fontSize: defaultFontSize)
   /// ```
   TextStyle get textStyle =>
-      textTheme.body1.copyWith(fontSize: kDefaultFontSize);
+      textTheme.body1.copyWith(fontSize: defaultFontSize);
 
   /// The color of an item when selected.
   ///

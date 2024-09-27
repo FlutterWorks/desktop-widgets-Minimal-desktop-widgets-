@@ -92,7 +92,7 @@ class ButtonThemeData {
   /// Defaults to:
   ///
   /// ```dart
-  /// textTheme.body2.copyWith(fontSize: kDefaultFontSize, overflow: TextOverflow.ellipsis)
+  /// textTheme.body2.copyWith(fontSize: defaultFontSize, overflow: TextOverflow.ellipsis)
   /// ```
   final TextStyle? textStyle;
 
@@ -110,7 +110,7 @@ class ButtonThemeData {
   /// Defaults to:
   ///
   /// ```dart
-  /// colorScheme.primary[kHighlightColorIndex]
+  /// colorScheme.primary[60]
   /// ```
   final Color? color;
 
@@ -356,109 +356,109 @@ axis: The axis of the button.
  ```;;itemSpacing: Spacing used in body and button paddings.
 
  Defaults to:
- 
+
  ```dart
  4.0
  ```;;filledSpacing: Spacing used in body padding when the button is filled.
 
  Defaults to:
- 
+
  ```dart
  12.0
  ```;;height: The height of the button.
 
  Defaults to:
- 
+
  ```dart
  32.0
  ```;;minWidth: The minimum width of the button.
 
  Defaults to:
- 
+
  ```dart
  12.0
  ```;;textStyle: The text style.
 
  Defaults to:
- 
+
  ```dart
- textTheme.body2.copyWith(fontSize: kDefaultFontSize, overflow: TextOverflow.ellipsis)
+ textTheme.body2.copyWith(fontSize: defaultFontSize, overflow: TextOverflow.ellipsis)
  ```;;disabledColor: The color when the button is disabled.
 
  Defaults to:
- 
+
  ```dart
  colorScheme.disabled
  ```;;color: The color when button is not filled.
 
  Defaults to:
- 
- ```dart 
- colorScheme.primary[kHighlightColorIndex]
+
+ ```dart
+ colorScheme.primary[60]
  ```;;focusColor: The color when the button has focus.
 
  Defaults to:
- 
+
  ```dart
  hoverColor
  ```;;hoverColor: The color when the button is being hovered.
 
  Defaults to:
- 
- ```dart 
+
+ ```dart
  textTheme.textHigh
  ```;;highlightColor: The color when the button is pressed.
 
  Defaults to:
- 
+
  ```dart
  textTheme.textLow
  ```;;background: The background color when the button is filled.
 
  Defaults to:
- 
- ```dart 
+
+ ```dart
  colorScheme.primary[30]
  ```;;focusBackground: The background color when the button is being focused.
 
  Defaults to:
- 
+
  ```dart
  colorScheme.shade[100]
  ```;;hoverBackground: The background color when the button is being hovered.
 
  Defaults to:
- 
+
  ```dart
  colorScheme.shade[30]
  ```;;highlightBackground: The background color when the button is pressed.
 
  Defaults to:
- 
- ```dart 
+
+ ```dart
  colorScheme.background[20]
  ```;;foreground: The foreground color when the button is filled.
 
  Defaults to:
- 
+
  ```dart
  colorScheme.shade[100]
  ```;;hoverForeground: The foreground color when the button is being hovered.
 
  Defaults to:
- 
+
  ```dart
  colorScheme.shade[100]
  ```;;highlightForeground: The foreground color when the button is pressed.
 
  Defaults to:
- 
+
  ```dart
  textTheme.textHigh
  ```;;animationDuration: The duration of the animation.
- 
+
  Defaults to:
- 
+
  ```dart
  Duration(milliseconds: 100)
  ```;;
@@ -600,46 +600,45 @@ class ButtonTheme extends InheritedTheme {
 
       buttonThemeData ??= themeData.buttonTheme;
 
-      final _buttonThemeData =
+      final buttonValue =
           _ButtonThemeData(textTheme: textTheme, colorScheme: colorScheme);
 
-      final Axis axis = buttonThemeData.axis ?? _buttonThemeData.axis;
+      final Axis axis = buttonThemeData.axis ?? buttonValue.axis;
       final IconThemeData iconThemeData =
-          buttonThemeData.iconThemeData ?? _buttonThemeData.iconThemeData;
+          buttonThemeData.iconThemeData ?? buttonValue.iconThemeData;
       final double itemSpacing =
-          buttonThemeData.itemSpacing ?? _buttonThemeData.itemSpacing;
+          buttonThemeData.itemSpacing ?? buttonValue.itemSpacing;
       final double filledSpacing =
-          buttonThemeData.filledSpacing ?? _buttonThemeData.filledSpacing;
-      final double height = buttonThemeData.height ?? _buttonThemeData.height;
-      final double minWidth =
-          buttonThemeData.minWidth ?? _buttonThemeData.minWidth;
+          buttonThemeData.filledSpacing ?? buttonValue.filledSpacing;
+      final double height = buttonThemeData.height ?? buttonValue.height;
+      final double minWidth = buttonThemeData.minWidth ?? buttonValue.minWidth;
       final TextStyle textStyle =
-          buttonThemeData.textStyle ?? _buttonThemeData.textStyle;
+          buttonThemeData.textStyle ?? buttonValue.textStyle;
       final Color disabledColor =
-          buttonThemeData.disabledColor ?? _buttonThemeData.disabledColor;
-      final Color color = buttonThemeData.color ?? _buttonThemeData.color;
+          buttonThemeData.disabledColor ?? buttonValue.disabledColor;
+      final Color color = buttonThemeData.color ?? buttonValue.color;
       final Color focusColor =
-          buttonThemeData.focusColor ?? _buttonThemeData.focusColor;
+          buttonThemeData.focusColor ?? buttonValue.focusColor;
       final Color hoverColor =
-          buttonThemeData.hoverColor ?? _buttonThemeData.hoverColor;
+          buttonThemeData.hoverColor ?? buttonValue.hoverColor;
       final Color highlightColor =
-          buttonThemeData.highlightColor ?? _buttonThemeData.highlightColor;
+          buttonThemeData.highlightColor ?? buttonValue.highlightColor;
       final Color background =
-          buttonThemeData.background ?? _buttonThemeData.background;
+          buttonThemeData.background ?? buttonValue.background;
       final Color focusBackground =
-          buttonThemeData.focusBackground ?? _buttonThemeData.focusBackground;
+          buttonThemeData.focusBackground ?? buttonValue.focusBackground;
       final Color hoverBackground =
-          buttonThemeData.hoverBackground ?? _buttonThemeData.hoverBackground;
+          buttonThemeData.hoverBackground ?? buttonValue.hoverBackground;
       final Color highlightBackground = buttonThemeData.highlightBackground ??
-          _buttonThemeData.highlightBackground;
+          buttonValue.highlightBackground;
       final Color foreground =
-          buttonThemeData.foreground ?? _buttonThemeData.foreground;
+          buttonThemeData.foreground ?? buttonValue.foreground;
       final Color hoverForeground =
-          buttonThemeData.hoverForeground ?? _buttonThemeData.hoverForeground;
+          buttonThemeData.hoverForeground ?? buttonValue.hoverForeground;
       final Color highlightForeground = buttonThemeData.highlightForeground ??
-          _buttonThemeData.highlightForeground;
-      final Duration animationDuration = buttonThemeData.animationDuration ??
-          _buttonThemeData.animationDuration;
+          buttonValue.highlightForeground;
+      final Duration animationDuration =
+          buttonThemeData.animationDuration ?? buttonValue.animationDuration;
 
       return buttonThemeData.copyWith(
         axis: axis,

@@ -65,10 +65,10 @@ class _TabThemeData {
   /// Defaults to:
   ///
   /// ```dart
-  /// textTheme.body2.copyWith(fontSize: kDefaultFontSize, overflow: TextOverflow.ellipsis)
+  /// textTheme.body2.copyWith(fontSize: defaultFontSize, overflow: TextOverflow.ellipsis)
   /// ```
   TextStyle get textStyle => textTheme.body2.copyWith(
-        fontSize: kDefaultFontSize,
+        fontSize: defaultFontSize,
         overflow: TextOverflow.ellipsis,
       );
 
@@ -79,8 +79,10 @@ class _TabThemeData {
   /// ```dart
   /// IconThemeData(size: kDefaultIconSize)
   /// ```
-  IconThemeData get iconThemeData =>
-      const IconThemeData(size: kDefaultIconSize);
+  IconThemeData get iconThemeData => const IconThemeData(
+        size: defaultIconSize,
+        fill: 1.0,
+      );
 
   /// The space between items inside the tab bar, if they are simple text or an icon.
   ///

@@ -1,7 +1,7 @@
 page:
 	rm -rf ../docs/*
 	mkdir -p ../docs
-	flutter build web -v
+	flutter build web -v --wasm
 	cp -r -v build/web/* ../docs
 
 android:
@@ -23,7 +23,7 @@ linux:
 	@echo "Type=Application" >> ~/.local/share/applications/desktop_docs.desktop
 	@echo "Name=Desktop Docs" >> ~/.local/share/applications/desktop_docs.desktop
 	@echo "" >> ~/.local/share/applications/desktop_docs.desktop
-	@echo "Exec=${HOME}/opt/desktop_docs/docs_web" >> ~/.local/share/applications/desktop_docs.desktop
+	@echo "Exec=${HOME}/opt/desktop_docs/desktop" >> ~/.local/share/applications/desktop_docs.desktop
 	@echo "Icon=${HOME}/opt/desktop_docs/icon.svg" >> ~/.local/share/applications/desktop_docs.desktop
 
 .PHONY: linux android

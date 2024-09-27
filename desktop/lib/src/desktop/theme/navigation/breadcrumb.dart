@@ -63,17 +63,20 @@ class _BreadcrumbThemeData {
   /// ```dart
   /// IconThemeData(size: 20.0)
   /// ```
-  IconThemeData get iconTheme => const IconThemeData(size: 20.0);
+  IconThemeData get iconTheme => const IconThemeData(
+        size: 20.0,
+        fill: 1.0,
+      );
 
   /// The style for the text.
   ///
   /// Defaults to:
   ///
   /// ```dart
-  /// textTheme.body2.copyWith(fontSize: kDefaultFontSize, overflow: TextOverflow.ellipsis)
+  /// textTheme.body2.copyWith(fontSize: defaultFontSize, overflow: TextOverflow.ellipsis)
   /// ```
   TextStyle get textStyle => textTheme.body2.copyWith(
-        fontSize: kDefaultFontSize,
+        fontSize: defaultFontSize,
         overflow: TextOverflow.ellipsis,
       );
 
